@@ -2,6 +2,7 @@ from ebaws.config import Config
 from ebaws.consts import *
 import json
 import os.path
+import util
 
 
 class Core(object):
@@ -32,5 +33,14 @@ class Core(object):
 
         conf_name = Core.get_config_file_path()
         return Config.from_file(conf_name)
+
+    @staticmethod
+    def backup_configuration(config):
+        cur_name = Core.get_config_file_path()
+        fhnd, fname = util.unique_file(cur_name, 0o644)
+        fhnd.write(config.to_string()+"\n")
+        return fname, fhnd
+
+
 
 

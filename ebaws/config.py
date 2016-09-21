@@ -45,6 +45,9 @@ class Config(object):
     def has_apikey(self):
         return self.apikey is not None
 
+    def to_string(self):
+        return json.dumps(self.json, indent=2) if self.has_nonempty_config() else ""
+
     # username
     @property
     def username(self):
