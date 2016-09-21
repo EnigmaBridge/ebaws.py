@@ -7,8 +7,9 @@ __author__ = 'dusanklinec'
 class Config(object):
     """Configuration object, handles file read/write"""
 
-    def __init__(self, json=None, *args, **kwargs):
+    def __init__(self, json=None, retry=None, *args, **kwargs):
         self.json = json
+        self.retry = retry
         pass
 
     @classmethod
