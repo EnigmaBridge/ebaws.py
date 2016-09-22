@@ -59,7 +59,7 @@ class InfoLoader(object):
                 continue
 
             c_key = match.group(1).strip()
-            c_val = match.group(0).strip()
+            c_val = match.group(2).strip()
             self.ami_results[c_key] = c_val
 
             if c_key == self.AMI_KEY_ID:
