@@ -19,16 +19,16 @@ class App(Cmd):
         """Initializes the EB client machine, new identity is assigned."""
         print "Going to initialize the EB identity"
         print "WARNING! This is a destructive process!"
-        var = raw_input("Do you really want to proceed? (Y/n): ").strip()
-        if var != 'Y':
+        should_continue = self.ask_proceed()
+        if not should_continue:
             return
 
         config = Core.read_configuration()
-        if config.has_nonempty_config():
+        if config is not None and config.has_nonempty_config():
             print "WARNING! Configuration already exists in the file %s \n" % (Core.get_config_file_path())
             print "The configuration will be overwritten by a new one (current config will be backed up)"
-            var = raw_input("Do you really want to proceed? (Y/n): ").strip()
-            if var != 'Y':
+            should_continue = self.ask_proceed()
+            if not should_continue:
                 return
 
             # Backup the old config
@@ -37,6 +37,31 @@ class App(Cmd):
 
         # Reinit...
         # TODO:
+        email = self.ask_for_email()
+        print email
+
+    def ask_proceed(self, question=None):
+        """Ask if user wants to proceed"""
+        confirmation = None
+        while confirmation != 'y' and confirmation != 'n':
+            confirmation = raw_input(question if question is not None else "Do you really want to proceed? (Y/n): ").strip().lower()
+
+        return confirmation == 'y'
+
+    def ask_for_email(self):
+        """Asks user for an email address"""
+        confirmation = False
+        var = None
+
+        while not confirmation:
+            var = raw_input("Please enter your email address [empty]: ").strip()
+            question = None
+            if len(var) == 0:
+                question = "You have entered an empty email address, is it correct? (Y/n):"
+            else:
+                question = "Is this email correct? \"%s\" (Y/n):" % var
+            confirmation = self.ask_proceed(question)
+        return var
 
     def do_EOF(self, line):
         return True
