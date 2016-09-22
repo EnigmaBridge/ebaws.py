@@ -1,5 +1,9 @@
 import json
 import functools
+from consts import *
+from errors import *
+from ebclient.eb_configuration import Endpoint
+from ebclient.registration import *
 
 __author__ = 'dusanklinec'
 
@@ -7,20 +11,27 @@ __author__ = 'dusanklinec'
 class Config(object):
     """Configuration object, handles file read/write"""
 
-    def __init__(self, json=None, retry=None, *args, **kwargs):
-        self.json = json
-        self.retry = retry
+    def __init__(self, json_db=None, eb_config=None, *args, **kwargs):
+        self.json = json_db
+        self.eb_config = eb_config
+
         pass
 
     @classmethod
     def from_json(cls, json_string):
-        return cls(json=json.loads(json_string))
+        return cls(json_db=json.loads(json_string))
 
     @classmethod
     def from_file(cls, file_name):
         with open(file_name, 'r') as f:
-            conf_data = f.read()
-            return Config.from_json(conf_data)
+            read_lines = [x.strip() for x in f.read().split('\n')]
+            lines = []
+            for line in read_lines:
+                if line.startswith('//'):
+                    continue
+                lines.append(line)
+
+            return Config.from_json('\n'.join(lines))
 
     def ensure_config(self):
         if self.json is None:
@@ -48,6 +59,49 @@ class Config(object):
 
     def to_string(self):
         return json.dumps(self.json, indent=2) if self.has_nonempty_config() else ""
+
+    def resolve_endpoint(self, purpose=SERVER_PROCESS_DATA, protocol=PROTOCOL_HTTPS, environment=ENVIRONMENT_DEVELOPMENT):
+        """
+        Resolves required endpoint from the configuration according to the parameters
+        :param purpose:
+        :param protocol:
+        :return:
+        """
+        if not self.has_nonempty_config() or self.servers is None:
+            raise ValueError('Configuration has no servers')
+
+        candidate_list = []
+        for server in self.servers:
+            endpoint_key = 'useEndpoints'
+            if purpose == SERVER_ENROLLMENT:
+                endpoint_key = 'enrolEndpoints'
+            elif purpose == SERVER_REGISTRATION:
+                endpoint_key = 'registerEndpoints'
+            elif purpose != SERVER_PROCESS_DATA:
+                raise ValueError('Endpoint purpose unknown')
+
+            if endpoint_key not in server:
+                continue
+            if environment is not None and server['environment'] != environment:
+                continue
+
+            endpoints = server[endpoint_key]
+            for endpoint in endpoints:
+                if protocol is not None and endpoint['protocol'] != protocol:
+                    continue
+
+                # Construct a candidate
+                candidate = Endpoint(scheme=endpoint['protocol'],
+                                     host=server['fqdn'],
+                                     port=endpoint['port'])
+
+                candidate_list.append(candidate)
+            pass
+
+        if len(candidate_list) == 0:
+            raise NoSuchEndpoint('No such endpoint found')
+
+        return candidate_list[0], candidate_list
 
     # username
     @property
@@ -78,21 +132,31 @@ class Config(object):
 
     # process endpoint
     @property
-    def endpoint_process(self):
-        return self.get_config('endpoint_process')
+    def servers(self):
+        return self.get_config('servers')
 
-    @endpoint_process.setter
-    def endpoint_process(self, val):
-        self.set_config('endpoint_process', val)
+    @servers.setter
+    def servers(self, val):
+        self.set_config('servers', val)
+
+    # Time the configuration was generated
+    @property
+    def generated_time(self):
+        return self.get_config('generated_time')
+
+    @generated_time.setter
+    def generated_time(self, val):
+        self.set_config('generated_time', val)
+
+    # process endpoint
+    @property
+    def endpoint_process(self):
+        return self.resolve_endpoint(SERVER_PROCESS_DATA, PROTOCOL_HTTPS)
 
     # enroll endpoint
     @property
     def endpoint_enroll(self):
-        return self.get_config('endpoint_enroll')
-
-    @endpoint_enroll.setter
-    def endpoint_enroll(self, val):
-        self.set_config('endpoint_enroll', val)
+        return self.resolve_endpoint(SERVER_ENROLLMENT, PROTOCOL_HTTPS)
 
 
 

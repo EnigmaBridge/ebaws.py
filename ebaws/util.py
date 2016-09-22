@@ -11,7 +11,7 @@ import socket
 import stat
 import subprocess
 import sys
-from ebaws import errors
+import errors
 
 
 logger = logging.getLogger(__name__)

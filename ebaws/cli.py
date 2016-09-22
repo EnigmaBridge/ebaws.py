@@ -1,6 +1,8 @@
 from cmd2 import Cmd
 import argparse
-from ebaws.core import Core
+from core import Core
+from registration import Registration
+import traceback
 
 
 class App(Cmd):
@@ -33,12 +35,20 @@ class App(Cmd):
 
             # Backup the old config
             fname = Core.backup_configuration(config)
-            print "\nConfiguration has been backed up: %s" % fname
+            print("\nConfiguration has been backed up: %s" % fname)
 
-        # Reinit...
-        # TODO:
+        # Reinit
         email = self.ask_for_email()
-        print email
+        eb_cfg = Core.get_default_eb_config()
+        try:
+            reg_svc = Registration(email=email, eb_cfg=eb_cfg)
+            new_config = reg_svc.new_registration()
+            conf_file = Core.write_configuration(new_config)
+            print("New configuration was written to: %s" % conf_file)
+
+        except Exception as ex:
+            traceback.print_exc()
+            print "Exception in the registration process"
 
     def ask_proceed(self, question=None):
         """Ask if user wants to proceed"""
