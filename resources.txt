@@ -1,0 +1,2 @@
+https://pythonhosted.org/cmd2/unfreefeatures.html
+https://pymotw.com/2/cmd/
