@@ -8,6 +8,18 @@ from ebclient.registration import *
 __author__ = 'dusanklinec'
 
 
+class EBEndpoint(Endpoint):
+    """
+    Extends normal endpoint, with added reference to the configuration
+    """
+    def __init__(self, scheme=None, host=None, port=None, server=None, *args, **kwargs):
+        super(EBEndpoint, self).__init__(
+            scheme=scheme,
+            host=host,
+            port=port)
+        self.server = server
+
+
 class Config(object):
     """Configuration object, handles file read/write"""
 
@@ -60,7 +72,7 @@ class Config(object):
     def to_string(self):
         return json.dumps(self.json, indent=2) if self.has_nonempty_config() else ""
 
-    def resolve_endpoint(self, purpose=SERVER_PROCESS_DATA, protocol=PROTOCOL_HTTPS, environment=ENVIRONMENT_DEVELOPMENT):
+    def resolve_endpoint(self, purpose=SERVER_PROCESS_DATA, protocol=PROTOCOL_HTTPS, environment=None, *args, **kwargs):
         """
         Resolves required endpoint from the configuration according to the parameters
         :param purpose:
@@ -91,9 +103,10 @@ class Config(object):
                     continue
 
                 # Construct a candidate
-                candidate = Endpoint(scheme=endpoint['protocol'],
-                                     host=server['fqdn'],
-                                     port=endpoint['port'])
+                candidate = EBEndpoint(scheme=endpoint['protocol'],
+                                       host=server['fqdn'],
+                                       port=endpoint['port'],
+                                       server=server)
 
                 candidate_list.append(candidate)
             pass
