@@ -28,7 +28,11 @@ class InfoLoader(object):
     AMI_KEY_INSTANCE_TYPE = 'instance-type'
     AMI_KEY_PLACEMENT = 'placement'
     AMI_KEY_PRODUCT_CODES = 'product-codes'
-    AMI_KEYS = [AMI_KEY_ID, AMI_KEY_INSTANCE_ID, AMI_KEY_INSTANCE_TYPE, AMI_KEY_PLACEMENT, AMI_KEY_PRODUCT_CODES]
+    AMI_KEY_PUBLIC_IP = 'public-ipv4'
+    AMI_KEY_LOCAL_IP = 'local-ipv4'
+
+    AMI_KEYS = [AMI_KEY_ID, AMI_KEY_INSTANCE_ID, AMI_KEY_INSTANCE_TYPE, AMI_KEY_PLACEMENT, AMI_KEY_PRODUCT_CODES,
+                AMI_KEY_PUBLIC_IP, AMI_KEY_LOCAL_IP]
 
     def __init__(self):
         self.ami_id = None
@@ -37,6 +41,8 @@ class InfoLoader(object):
         self.ami_placement = None
         self.ami_product_code = None
         self.ami_results = None
+        self.ami_public_ip = None
+        self.ami_local_ip = None
         self.ec2_metadata_executable = None
 
     def env_check(self):
@@ -48,13 +54,15 @@ class InfoLoader(object):
 
     def load(self):
         self.env_check()
-        out, err = util.run_script([self.ec2_metadata_executable] + ('-a -i -t -z -c'.split(' ')))
+        out, err = util.run_script([self.ec2_metadata_executable] + ('-a -i -t -z -c -v -o'.split(' ')))
 
         lines = [x.strip() for x in out.split('\n')]
         self.ami_results = {}
         for line in lines:
-            if len(line) == 0: continue
-            match = re.match( r'^\s*([a-zA-Z0-9-\s]+?)\s*:(.+)\s*$', line, re.I)
+            if len(line) == 0:
+                continue
+
+            match = re.match(r'^\s*([a-zA-Z0-9-\s]+?)\s*:(.+)\s*$', line, re.I)
             if match is None:
                 continue
 
@@ -72,6 +80,10 @@ class InfoLoader(object):
                 self.ami_placement = c_val
             elif c_key == self.AMI_KEY_PRODUCT_CODES:
                 self.ami_product_code = c_val
+            elif c_key == self.AMI_KEY_LOCAL_IP:
+                self.ami_local_ip = c_val
+            elif c_key == self.AMI_KEY_PUBLIC_IP:
+                self.ami_public_ip = c_val
         pass
 
 
