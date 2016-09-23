@@ -41,7 +41,7 @@ class Core(object):
         util.make_or_verify_dir(CONFIG_DIR, mode=0o755)
 
         conf_name = Core.get_config_file_path()
-        with os.fdopen(os.open(conf_name, os.O_WRONLY | os.O_CREAT, 0o600), 'w') as config_file:
+        with os.fdopen(os.open(conf_name, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), 'w') as config_file:
             config_file.write('// \n')
             config_file.write('// Config file generated: %s\n' % datetime.now().strftime("%Y-%m-%d %H:%M"))
             config_file.write('// \n')
