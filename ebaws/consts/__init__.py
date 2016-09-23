@@ -7,7 +7,7 @@ SERVER_ENROLLMENT='enrollment'
 SERVER_REGISTRATION='registration'
 
 PROTOCOL_HTTPS='https'
-PROTOCOL_RAW='raw'
+PROTOCOL_RAW='tcp'
 
 EC2META_FILES=['/opt/aws/bin/ec2-metadata']
 

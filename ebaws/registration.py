@@ -34,7 +34,7 @@ class InfoLoader(object):
     AMI_KEYS = [AMI_KEY_ID, AMI_KEY_INSTANCE_ID, AMI_KEY_INSTANCE_TYPE, AMI_KEY_PLACEMENT, AMI_KEY_PRODUCT_CODES,
                 AMI_KEY_PUBLIC_IP, AMI_KEY_LOCAL_IP]
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.ami_id = None
         self.ami_instance_id = None
         self.ami_instance_type = None

@@ -2,6 +2,7 @@ from cmd2 import Cmd
 import argparse
 from core import Core
 from registration import Registration
+from softhsm_config import SoftHsmV1Config
 import traceback
 
 
@@ -45,6 +46,19 @@ class App(Cmd):
             new_config = reg_svc.new_registration()
             conf_file = Core.write_configuration(new_config)
             print("New configuration was written to: %s\n" % conf_file)
+
+            # SoftHSMv1 reconfigure
+            soft_config = SoftHsmV1Config()
+            soft_config_backup_location = soft_config.backup_current_config_file()
+            print("SoftHSMv1 configuration has been backed up to: %s" % soft_config_backup_location)
+
+            soft_config.configure(new_config)
+            soft_config_file = soft_config.write_config()
+            print("New SoftHSMv1 configuration has been written to: %s\n" % soft_config_file)
+
+            # TODO: configure EJBCA, restart, ...
+            # TODO: show user where to get p12 file
+
 
         except Exception as ex:
             traceback.print_exc()
