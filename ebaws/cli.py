@@ -20,22 +20,22 @@ class App(Cmd):
     def do_init(self, line):
         """Initializes the EB client machine, new identity is assigned."""
         print "Going to initialize the EB identity"
-        print "WARNING! This is a destructive process!"
+        print "WARNING! This is a destructive process!\n"
         should_continue = self.ask_proceed()
         if not should_continue:
             return
 
         config = Core.read_configuration()
         if config is not None and config.has_nonempty_config():
-            print "WARNING! Configuration already exists in the file %s \n" % (Core.get_config_file_path())
-            print "The configuration will be overwritten by a new one (current config will be backed up)"
+            print "\nWARNING! Configuration already exists in the file %s" % (Core.get_config_file_path())
+            print "The configuration will be overwritten by a new one (current config will be backed up)\n"
             should_continue = self.ask_proceed()
             if not should_continue:
                 return
 
             # Backup the old config
             fname = Core.backup_configuration(config)
-            print("\nConfiguration has been backed up: %s" % fname)
+            print("Configuration has been backed up: %s\n" % fname)
 
         # Reinit
         email = self.ask_for_email()
@@ -44,7 +44,7 @@ class App(Cmd):
             reg_svc = Registration(email=email, eb_cfg=eb_cfg)
             new_config = reg_svc.new_registration()
             conf_file = Core.write_configuration(new_config)
-            print("New configuration was written to: %s" % conf_file)
+            print("New configuration was written to: %s\n" % conf_file)
 
         except Exception as ex:
             traceback.print_exc()
