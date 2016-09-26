@@ -5,6 +5,7 @@ from ebclient.eb_utils import EBUtils
 from datetime import datetime
 import time
 import sys
+import subprocess
 
 __author__ = 'dusanklinec'
 
@@ -214,13 +215,18 @@ class Ejbca(object):
         while len(p.commands) == 0:
             time.sleep(0.15)
 
+        log_file = '/tmp/ant-install.log'
+        util.delete_file_backup(log_file)
+        log = util.safe_open(log_file, mode='w', chmod=0o600)
+
         try:
             while p.commands[0].returncode is None:
                 out = p.stdout.readline()
                 err = p.stderr.readline()
 
                 if out is not None and len(out) > 0:
-                    #sys.stderr.write('stdout: '+out+"\n")
+                    log.write(out)
+                    log.flush()
                     sys.stderr.write('.')
                     if 'truststore with the CA certificate for https' in out:
                         feeder.feed(self.java_pass + '\n')
@@ -236,7 +242,9 @@ class Ejbca(object):
                         feeder.feed('\n')
 
                 if err is not None and len(err)>0:
-                    sys.stderr.write('stderr: ' + err + "\n")
+                    log.write(err)
+                    log.flush()
+                    sys.stderr.write('.')
 
                 p.commands[0].poll()
                 time.sleep(0.01)
@@ -245,18 +253,25 @@ class Ejbca(object):
 
             rest_out = p.stdout.readlines()
             if rest_out is not None and len(rest_out) > 0:
-                for i in rest_out: sys.stderr.write('.')
-            sys.stderr.write('\n')
+                for i in rest_out:
+                    log.write(i)
+                    sys.stderr.write('.')
+                log.flush()
 
             rest_err = p.stderr.readlines()
             if rest_err is not None and len(rest_err) > 0:
-                sys.stderr.write('stderr: ' + '\n'.join(p.stderr.readlines()) + '\n')
+                for i in rest_err:
+                    log.write(i)
+                log.flush()
 
+            sys.stderr.write('\n')
             if ret_code != 0:
                 sys.stderr.write('Error, process returned with invalid result code: %s\n' % p.commands[0].returncode)
+                sys.stderr.write('For more details please refer to %s \n' % log_file)
 
         finally:
             feeder.close()
+            log.close()
             pass
 
         return ret_code
@@ -266,16 +281,24 @@ class Ejbca(object):
         Stops Jboss server, blocking
         :return:
         """
-        p = run('/etc/init.d/jboss stop')
-        return p.commands[0].returncode
+        p = subprocess.Popen(['/etc/init.d/jboss', 'stop'])
+        p.communicate()
+        return p.wait()
+        # if done with sarge - jboss is terminated when python is terminated...
+        # p = run('/etc/init.d/jboss stop')
+        # return p.commands[0].returncode
 
     def jboss_start(self):
         """
         Starts jboss server, blocking
         :return:
         """
-        p = run('/etc/init.d/jboss start')
-        return p.commands[0].returncode
+        p = subprocess.Popen(['/etc/init.d/jboss', 'start'])
+        p.communicate()
+        return p.wait()
+        # if done with sarge - jboss is terminated when python is terminated...
+        # p = run('/etc/init.d/jboss start')
+        # return p.commands[0].returncode
 
     def jboss_backup_database(self):
         """
