@@ -54,7 +54,16 @@ class App(Cmd):
 
             soft_config.configure(new_config)
             soft_config_file = soft_config.write_config()
+
             print("New SoftHSMv1 configuration has been written to: %s\n" % soft_config_file)
+
+            # Init the token
+            backup_dir = soft_config.backup_previous_token_dir()
+            if backup_dir is not None:
+                print("SoftHSMv1 previous token database moved to: %s" % backup_dir)
+
+            out, err = soft_config.init_token()
+            print("SoftHSMv1 initialization: %s\n" % out)
 
             # TODO: configure EJBCA, restart, ...
             # TODO: show user where to get p12 file

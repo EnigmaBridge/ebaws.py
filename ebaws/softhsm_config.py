@@ -6,6 +6,8 @@ from consts import *
 from errors import *
 from config import Config
 from datetime import datetime
+import shutil
+import errno
 
 __author__ = 'dusanklinec'
 
@@ -15,6 +17,7 @@ class SoftHsmV1Config(object):
     Class for configuring SoftHSMv1 instance for EB
     """
     CONFIG_FILE = '/etc/softhsm.conf'
+    SOFTHSM_DB_DIR = '/var/lib/softhsm'
     DEFAULT_SLOT_CONFIG = {
             'slot': 0,
             'db': '/var/lib/softhsm/slot0.db',
@@ -131,6 +134,33 @@ class SoftHsmV1Config(object):
             config_file.write('// \n')
             config_file.write(json.dumps(self.json, indent=2) + "\n\n")
         return conf_name
+
+    def backup_previous_token_dir(self):
+        """
+        Backs up the previous token database
+        :return:
+        """
+        if os.path.exists(self.SOFTHSM_DB_DIR):
+            backup_slot_dir = util.safe_new_dir(self.SOFTHSM_DB_DIR, 0o755)
+            shutil.rmtree(backup_slot_dir)
+            shutil.move(self.SOFTHSM_DB_DIR, backup_slot_dir)
+            return backup_slot_dir
+        return None
+
+    def init_token(self):
+        """
+        Initializes a new SoftHSM token created by the configuration
+        :return:
+        """
+        try:
+            os.makedirs(self.SOFTHSM_DB_DIR, 0o755)
+        except OSError as exception:
+            if exception.errno != errno.EEXIST:
+                raise
+
+        out, err = util.run_script('softhsm --init-token --slot 0 --pin 0000 --so-pin 0000 --label "ejbca"'.split(' '))
+        return out, err
+
 
 
 
