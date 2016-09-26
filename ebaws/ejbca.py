@@ -56,9 +56,9 @@ class Ejbca(object):
         self.install_props = install_props if install_props is not None else {}
         self.web_props = web_props if web_props is not None else {}
 
-        self.http_pass = util.random_password(12)
-        self.java_pass = util.random_password(12)
-        self.superadmin_pass = util.random_password(12)
+        self.http_pass = util.random_password(16)
+        self.java_pass = util.random_password(16)
+        self.superadmin_pass = util.random_password(16)
 
         self.ejbca_install_result = 1
         pass

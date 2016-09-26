@@ -263,5 +263,5 @@ def random_password(length):
     :param length:
     :return:
     """
-    return ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + "_./-,;") for _ in range(length))
+    return ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + "_") for _ in range(length))
 
