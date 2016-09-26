@@ -113,9 +113,9 @@ def check_permissions(filepath, mode, uid=0):
     return stat.S_IMODE(file_stat.st_mode) == mode and file_stat.st_uid == uid
 
 
-def safe_create_with_backup(path, mode='w', chmod=0o644):
+def delete_file_backup(path, chmod=0o644):
     """
-    Safely creates a new file, backs up the old one if existed
+    Backup the current file by moving it to a new file
     :param path:
     :param mode:
     :param chmod:
@@ -127,6 +127,18 @@ def safe_create_with_backup(path, mode='w', chmod=0o644):
         fhnd.close()
         shutil.move(path, fname)
         backup_path = fname
+    return backup_path
+
+
+def safe_create_with_backup(path, mode='w', chmod=0o644):
+    """
+    Safely creates a new file, backs up the old one if existed
+    :param path:
+    :param mode:
+    :param chmod:
+    :return:
+    """
+    backup_path = delete_file_backup(path, chmod)
     return safe_open(path, mode, chmod), backup_path
 
 
