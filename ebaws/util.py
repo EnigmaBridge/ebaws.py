@@ -131,6 +131,36 @@ def safe_open(path, mode="w", chmod=None, buffering=None):
         mode, *fdopen_args)
 
 
+def safe_new_dir(path, mode=0o755):
+    """
+    Creates a new unique directory. If the given directory already exists,
+    linear incrementation is used to create a new one.
+
+
+    :param path:
+    :param mode:
+    :return:
+    """
+    path, tail = os.path.split(path)
+    return _unique_dir(
+        path, dirname_pat=(lambda count: "%s_%04d" % (tail, count)),
+        count=0, mode=mode)
+
+
+def _unique_dir(path, dirname_pat, count, mode):
+    while True:
+        current_path = os.path.join(path, dirname_pat(count))
+        try:
+            os.makedirs(current_path, mode)
+            return os.path.abspath(current_path)
+
+        except OSError as exception:
+            # "Dir exists," is okay, try a different name.
+            if exception.errno != errno.EEXIST:
+                raise
+        count += 1
+
+
 def _unique_file(path, filename_pat, count, mode):
     while True:
         current_path = os.path.join(path, filename_pat(count))
