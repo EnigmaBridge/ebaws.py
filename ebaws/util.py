@@ -13,6 +13,8 @@ import subprocess
 import sys
 import errors
 import shutil
+import random
+import string
 
 
 logger = logging.getLogger(__name__)
@@ -254,4 +256,12 @@ def safely_remove(path):
         if err.errno != errno.ENOENT:
             raise
 
+
+def random_password(length):
+    """
+    Generates a random password which consists of digits, lowercase and uppercase characters
+    :param length:
+    :return:
+    """
+    return ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + "_./-,;") for _ in range(length))
 
