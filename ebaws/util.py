@@ -12,6 +12,7 @@ import stat
 import subprocess
 import sys
 import errors
+import shutil
 
 
 logger = logging.getLogger(__name__)
@@ -110,6 +111,23 @@ def check_permissions(filepath, mode, uid=0):
     """
     file_stat = os.stat(filepath)
     return stat.S_IMODE(file_stat.st_mode) == mode and file_stat.st_uid == uid
+
+
+def safe_create_with_backup(path, mode='w', chmod=0o644):
+    """
+    Safely creates a new file, backs up the old one if existed
+    :param path:
+    :param mode:
+    :param chmod:
+    :return:
+    """
+    backup_path = None
+    if os.path.exists(path):
+        fhnd, fname = unique_file(path, chmod)
+        fhnd.close()
+        shutil.move(path, fname)
+        backup_path = fname
+    return safe_open(path, mode, chmod), backup_path
 
 
 def safe_open(path, mode="w", chmod=None, buffering=None):
