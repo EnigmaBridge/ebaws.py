@@ -68,6 +68,7 @@ class App(Cmd):
 
             # EJBCA configuration
             ejbca = Ejbca()
+            ejbca.configure()
 
             # TODO: configure EJBCA, restart, ...
             # TODO: show user where to get p12 file
