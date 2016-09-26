@@ -67,12 +67,17 @@ class App(Cmd):
             print("SoftHSMv1 initialization: %s\n" % out)
 
             # EJBCA configuration
+            print("Going to install EJBCA")
+            print("  This may take 5-15 minutes, please, do not interrupt the installation")
+            print("  and wait until the process completes")
             ejbca = Ejbca()
             ejbca.configure()
-
-            # TODO: configure EJBCA, restart, ...
-            # TODO: show user where to get p12 file
-
+            if ejbca.ejbca_install_result != 0:
+                print("\nEJBCA installation error")
+            else:
+                print("\nEJBCA installed successfully.")
+                print("Download p12 file %s" % ejbca.get_p12_file())
+                print("Export password: %s" % ejbca.superadmin_pass)
 
         except Exception as ex:
             traceback.print_exc()

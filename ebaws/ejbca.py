@@ -20,6 +20,7 @@ class Ejbca(object):
     INSTALL_PROPERTIES_FILE = 'conf/install.properties'
     WEB_PROPERTIES_FILE = 'conf/web.properties'
     P12_FILE = 'p12/superadmin.p12'
+    PASSWORDS_FILE = '/root/ejbca.passwords'
 
     # Default installation settings
     INSTALL_PROPERTIES = {
@@ -57,6 +58,8 @@ class Ejbca(object):
         self.http_pass = util.random_password(12)
         self.java_pass = util.random_password(12)
         self.superadmin_pass = util.random_password(12)
+
+        self.ejbca_install_result = 1
         pass
 
     def get_ejbca_home(self):
@@ -65,9 +68,9 @@ class Ejbca(object):
         :return:
         """
         if 'EJBCA_HOME' in os.environ and len(os.environ['EJBCA_HOME']) > 0:
-            return os.environ['EJBCA_HOME']
+            return os.path.abspath(os.environ['EJBCA_HOME'])
         else:
-            return self.EJBCA_HOME
+            return os.path.abspath(self.EJBCA_HOME)
 
     def get_jboss_home(self):
         """
@@ -75,15 +78,15 @@ class Ejbca(object):
         :return:
         """
         if 'JBOSS_HOME' in os.environ and len(os.environ['JBOSS_HOME']) > 0:
-            return os.environ['JBOSS_HOME']
+            return os.path.abspath(os.environ['JBOSS_HOME'])
         else:
-            return self.JBOSS_HOME
+            return os.path.abspath(self.JBOSS_HOME)
 
     def get_install_prop_file(self):
-        return os.path.join(self.get_ejbca_home(), self.INSTALL_PROPERTIES_FILE)
+        return os.path.abspath(os.path.join(self.get_ejbca_home(), self.INSTALL_PROPERTIES_FILE))
 
     def get_web_prop_file(self):
-        return os.path.join(self.get_ejbca_home(), self.WEB_PROPERTIES_FILE)
+        return os.path.abspath(os.path.join(self.get_ejbca_home(), self.WEB_PROPERTIES_FILE))
 
     def properties_to_string(self, prop):
         """
@@ -217,7 +220,8 @@ class Ejbca(object):
                 err = p.stderr.readline()
 
                 if out is not None and len(out) > 0:
-                    sys.stderr.write('stdout: '+out+"\n")
+                    #sys.stderr.write('stdout: '+out+"\n")
+                    sys.stderr.write('.')
                     if 'truststore with the CA certificate for https' in out:
                         feeder.feed(self.java_pass + '\n')
                     elif 'keystore with the TLS key for https' in out:
@@ -238,7 +242,11 @@ class Ejbca(object):
                 time.sleep(0.01)
 
             ret_code = p.commands[0].returncode
-            print '\n'.join(p.stdout.readlines())
+
+            rest_out = p.stdout.readlines()
+            if rest_out is not None and len(rest_out) > 0:
+                for i in rest_out: sys.stderr.write('.')
+            sys.stderr.write('\n')
 
             rest_err = p.stderr.readlines()
             if rest_err is not None and len(rest_err) > 0:
@@ -282,6 +290,21 @@ class Ejbca(object):
         backup2 = util.delete_file_backup(db2)
         return backup1, backup2
 
+    def backup_passwords(self):
+        """
+        Backups the generated passwords to /root/ejbca.passwords
+        :return:
+        """
+        util.delete_file_backup(self.PASSWORDS_FILE, chmod=0o600)
+        with util.safe_open(self.PASSWORDS_FILE, chmod=0o600) as f:
+            f.write('httpsserver.password=%s\n' % self.http_pass)
+            f.write('java.trustpassword=%s\n' % self.java_pass)
+            f.write('superadmin.password=%s\n' % self.superadmin_pass)
+            f.flush()
+
+    def get_p12_file(self):
+        return os.path.abspath(os.path.join(self.get_ejbca_home(), self.P12_FILE))
+
     def configure(self):
         """
         Configures EJBCA for installation deployment
@@ -290,15 +313,14 @@ class Ejbca(object):
 
         # 1. update properties file
         self.update_properties()
+        self.backup_passwords()
 
         # 2. and install
         self.jboss_stop()
         self.jboss_backup_database()
         self.jboss_start()
-        self.ant_install()
 
-
-
+        self.ejbca_install_result = self.ant_install()
         pass
 
 
