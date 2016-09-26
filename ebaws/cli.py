@@ -3,6 +3,7 @@ import argparse
 from core import Core
 from registration import Registration
 from softhsm_config import SoftHsmV1Config
+from ejbca import Ejbca
 import traceback
 
 
@@ -64,6 +65,9 @@ class App(Cmd):
 
             out, err = soft_config.init_token()
             print("SoftHSMv1 initialization: %s\n" % out)
+
+            # EJBCA configuration
+            ejbca = Ejbca()
 
             # TODO: configure EJBCA, restart, ...
             # TODO: show user where to get p12 file

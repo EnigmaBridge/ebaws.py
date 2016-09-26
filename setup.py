@@ -12,6 +12,7 @@ install_requires = [
     'pycrypto>=2.6',
     'requests',
     'setuptools>=1.0',
+    'sarge>=0.1.4',
     'six'
 ]
 
