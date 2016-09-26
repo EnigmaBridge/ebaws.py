@@ -154,8 +154,9 @@ def unique_file(path, mode=0o777):
 
     """
     path, tail = os.path.split(path)
+    filename, extension = os.path.splitext(tail)
     return _unique_file(
-        path, filename_pat=(lambda count: "%04d_%s" % (count, tail)),
+        path, filename_pat=(lambda count: "%s_%04d%s" % (filename, count, extension if not None else '')),
         count=0, mode=mode)
 
 
