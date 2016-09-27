@@ -328,6 +328,11 @@ class Ejbca(object):
         p = subprocess.Popen('sudo chown -R jboss:jboss ' + self.get_ejbca_home(), shell=True)
         p.wait()
 
+    def jboss_restart(self):
+        os.spawnlp(os.P_NOWAIT, "sudo", "bash", "bash", "-c",
+                   "setsid /etc/init.d/jboss-eap-6.4.0 restart 2>/dev/null >/dev/null </dev/null &")
+        time.sleep(15)
+
     def backup_passwords(self):
         """
         Backups the generated passwords to /root/ejbca.passwords
@@ -362,6 +367,11 @@ class Ejbca(object):
         self.jboss_remove_datasource()
         self.jboss_rollback_ejbca()
         self.jboss_reload()
+
+        # restart jboss
+        if self.print_output:
+            print "\n - Restarting JBoss, please wait..."
+        self.jboss_restart()
         self.jboss_backup_database()
         self.jboss_fix_privileges()
         self.jboss_reload()
