@@ -8,6 +8,8 @@ import sys
 import types
 import subprocess
 import shutil
+import re
+
 
 __author__ = 'dusanklinec'
 
@@ -298,7 +300,8 @@ class Ejbca(object):
 
     def jboss_reload(self):
         ret = self.jboss_cmd(':reload')
-        time.sleep(5)
+        time.sleep(3)
+        self.jboss_wait_after_start()
         return ret
 
     def jboss_undeploy(self):
@@ -359,10 +362,42 @@ class Ejbca(object):
         p = subprocess.Popen('sudo chown -R %s:%s %s' % (self.JBOSS_USER, self.JBOSS_USER, self.get_ejbca_home()), shell=True)
         p.wait()
 
+    def jboss_wait_after_start(self):
+        """
+        Waits until JBoss responds with success after start
+        :return:
+        """
+        jboss_works = False
+        max_attempts = 20
+
+        for i in range(0, max_attempts):
+            if i > 0:
+                if self.print_output:
+                    sys.stderr.write('.')
+                time.sleep(3)
+
+            try:
+                ret, out, err = self.jboss_cmd(':read-attribute(name=server-state)')
+                if ret != 0 or out is None or len(out) == 0:
+                    continue
+
+                out_total = '\n'.join(out)
+
+                if re.search(r'["\']?outcome["\']?\s*=>\s*["\']?success["\']?', out_total) and \
+                        re.search(r'["\']?result["\']?\s*=>\s*["\']?running["\']?', out_total):
+                    jboss_works = True
+                    break
+
+            except Exception as ex:
+                continue
+
+        return jboss_works
+
     def jboss_restart(self):
         os.spawnlp(os.P_NOWAIT, "sudo", "bash", "bash", "-c",
                    "setsid /etc/init.d/jboss-eap-6.4.0 restart 2>/dev/null >/dev/null </dev/null &")
-        time.sleep(20)
+        time.sleep(10)
+        self.jboss_wait_after_start()
 
     def backup_passwords(self):
         """
