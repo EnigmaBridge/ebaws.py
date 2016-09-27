@@ -217,6 +217,9 @@ class Ejbca(object):
             if rest_out is not None and len(rest_out) > 0:
                 for out in rest_out:
                     out_acc.append(out)
+                    if log is not None:
+                        log.write(out)
+                        log.flush()
                     if on_out is not None:
                         on_out(out, feeder)
 
@@ -225,6 +228,9 @@ class Ejbca(object):
             if rest_err is not None and len(rest_err) > 0:
                 for err in rest_err:
                     err_acc.append(err)
+                    if log is not None:
+                        log.write(err)
+                        log.flush()
                     if on_err is not None:
                         on_err(err, feeder)
 
