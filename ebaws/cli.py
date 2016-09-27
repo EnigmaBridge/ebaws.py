@@ -12,6 +12,7 @@ class App(Cmd):
     prompt = '$> '
     intro = '-'*80 + '\n    Enigma Bridge AWS command line interface. ' \
                      '\n    For help, type ?\n' + \
+                     '\n    init - initializes the EJBCA instance\n' + \
             '-'*80
 
     def do_dump_config(self, line):
