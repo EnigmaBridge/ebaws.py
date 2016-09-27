@@ -132,8 +132,11 @@ def delete_file_backup(path, chmod=0o644, backup_dir=None):
 
         fhnd, fname = unique_file(backup_path, chmod)
         fhnd.close()
-        shutil.move(path, fname)
+        shutil.copyfile(path, fname)
         backup_path = fname
+
+        # Copy is preferred to move. Move can keep processes working with the opened file after move operation.
+        os.remove(path)
     return backup_path
 
 
