@@ -303,14 +303,20 @@ class Ejbca(object):
         cmds = ['/core-service=management/security-realm=SSLRealm/authentication=truststore:remove',
                 '/core-service=management/security-realm=SSLRealm/server-identity=ssl:remove',
                 '/core-service=management/security-realm=SSLRealm:remove',
+
                 '/socket-binding-group=standard-sockets/socket-binding=httpspub:remove',
                 '/subsystem=undertow/server=default-server/https-listener=httpspub:remove',
+                '/subsystem=web/connector=httpspub:remove',
+
                 '/socket-binding-group=standard-sockets/socket-binding=httpspriv:remove',
                 '/subsystem=undertow/server=default-server/https-listener=httpspriv:remove',
+                '/subsystem=web/connector=httpspriv:remove',
+
                 '/socket-binding-group=standard-sockets/socket-binding=http:remove',
                 '/subsystem=undertow/server=default-server/http-listener=http:remove',
+                '/subsystem=web/connector=http:remove',
+
                 '/subsystem=undertow/server=default-server/http-listener=default:remove',
-                ':reload',
 
                 '/system-property=org.apache.catalina.connector.URI_ENCODING:remove',
                 '/system-property=org.apache.catalina.connector.USE_BODY_ENCODING_FOR_QUERY_STRING:remove',
