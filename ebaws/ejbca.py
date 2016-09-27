@@ -378,13 +378,43 @@ class Ejbca(object):
 
             try:
                 ret, out, err = self.jboss_cmd(':read-attribute(name=server-state)')
-                if ret != 0 or out is None or len(out) == 0:
+                if out is None or len(out) == 0:
                     continue
 
                 out_total = '\n'.join(out)
 
                 if re.search(r'["\']?outcome["\']?\s*=>\s*["\']?success["\']?', out_total) and \
                         re.search(r'["\']?result["\']?\s*=>\s*["\']?running["\']?', out_total):
+                    jboss_works = True
+                    break
+
+            except Exception as ex:
+                continue
+
+        return jboss_works
+
+    def jboss_wait_after_deploy(self):
+        """
+        Waits for JBoss to finish initial deployment.
+        :return:
+        """
+        jboss_works = False
+        max_attempts = 30
+
+        for i in range(0, max_attempts):
+            if i > 0:
+                if self.print_output:
+                    sys.stderr.write('.')
+                time.sleep(3)
+
+            try:
+                ret, out, err = self.jboss_cmd('deploy -l')
+                if out is None or len(out) == 0:
+                    continue
+
+                out_total = '\n'.join(out)
+
+                if re.search(r'ejbca.ear.+?\sOK', out_total):
                     jboss_works = True
                     break
 
@@ -478,12 +508,15 @@ class Ejbca(object):
             if self.print_output:
                 print " - Installing EJBCA" if i == 0 else " - Installing EJBCA, attempt %d" % (i+1)
             self.jboss_fix_privileges()
+            self.jboss_wait_after_deploy()
+
             res, out, err = self.ant_install()
             self.ejbca_install_result = res
             if res == 0:
                 break
 
         self.jboss_fix_privileges()
+        self.jboss_reload()
         return self.ejbca_install_result
 
 
