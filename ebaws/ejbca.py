@@ -69,7 +69,7 @@ class Ejbca(object):
         self.web_props = web_props if web_props is not None else {}
 
         self.http_pass = util.random_password(16)
-        self.java_pass = util.random_password(16)
+        self.java_pass = 'changeit' # EJBCA & JBoss bug here
         self.superadmin_pass = util.random_password(16)
 
         self.print_output = print_output
