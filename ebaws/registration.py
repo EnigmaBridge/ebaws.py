@@ -95,15 +95,15 @@ class Registration(object):
         self.email = None
         self.eb_config = None
         self.config = None
+        self.info_loader = InfoLoader()
         pass
 
     def new_registration(self):
         """
         Creates a new registration, returns new configuration object
         """
-        info_loader = InfoLoader()
-        info_loader.load()
-        if info_loader.ami_instance_id is None:
+        self.info_loader.load()
+        if self.info_loader.ami_instance_id is None:
             raise EnvError('Could not extract AMI instance ID')
 
         # Step 1: create a new identity
@@ -111,11 +111,11 @@ class Registration(object):
             self.eb_config = Core.get_default_eb_config()
 
         client_data_reg = {
-            'name': info_loader.ami_instance_id,
+            'name': self.info_loader.ami_instance_id,
             'authentication': 'type',
             'type': 'test',
             'token': 'LSQJCHT61VTEMFQBZADO',
-            'ami': info_loader.ami_results,
+            'ami': self.info_loader.ami_results,
             'email': self.email
         }
 
