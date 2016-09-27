@@ -272,7 +272,7 @@ class Ejbca(object):
             feeder.feed(self.http_pass + '\n')
         elif 'the superadmin password' in out:
             feeder.feed(self.superadmin_pass + '\n')
-        elif 'password CA token password':
+        elif 'password CA token password' in out:
             feeder.feed('\n')
         elif out.startswith('Please enter'):          # default - use default value, no starving
             feeder.feed('\n')
