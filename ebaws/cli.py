@@ -23,7 +23,7 @@ class App(Cmd):
     def do_init(self, line):
         """Initializes the EB client machine, new identity is assigned."""
         print "Going to initialize the EB identity"
-        print "WARNING! This is a destructive process!\n"
+        print "WARNING! This is a destructive process!"
         print "WARNING! The previous installation will be overwritten.\n"
         should_continue = self.ask_proceed()
         if not should_continue:
