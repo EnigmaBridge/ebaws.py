@@ -7,7 +7,7 @@ version = '0.0.2'
 
 # Please update tox.ini when modifying dependency version requirements
 install_requires = [
-    'ebclient.py>=0.1.3',
+    'ebclient.py>=0.1.4',
     'cmd2',
     'pycrypto>=2.6',
     'requests',
