@@ -5,6 +5,7 @@ from ebclient.eb_utils import EBUtils
 from datetime import datetime
 import time
 import sys
+import types
 import subprocess
 
 __author__ = 'dusanklinec'
@@ -17,11 +18,15 @@ class Ejbca(object):
 
     # Default home dirs
     EJBCA_HOME = '/home/ec2-user/ejbca_ce_6_3_1_1'
-    JBOSS_HOME = '/opt/jboss-as-7.1.1.Final'
+    JBOSS_HOME = '/opt/jboss-eap-6.4.0'
+
     INSTALL_PROPERTIES_FILE = 'conf/install.properties'
     WEB_PROPERTIES_FILE = 'conf/web.properties'
     P12_FILE = 'p12/superadmin.p12'
+
     PASSWORDS_FILE = '/root/ejbca.passwords'
+
+    JBOSS_CLI = 'bin/jboss-cli.sh'
 
     # Default installation settings
     INSTALL_PROPERTIES = {
@@ -52,13 +57,15 @@ class Ejbca(object):
         #'superadmin.password': 'ejbca',
     }
 
-    def __init__(self, install_props=None, web_props=None, *args, **kwargs):
+    def __init__(self, install_props=None, web_props=None, print_output=False, *args, **kwargs):
         self.install_props = install_props if install_props is not None else {}
         self.web_props = web_props if web_props is not None else {}
 
         self.http_pass = util.random_password(16)
         self.java_pass = util.random_password(16)
         self.superadmin_pass = util.random_password(16)
+
+        self.print_output = print_output
 
         self.ejbca_install_result = 1
         pass
@@ -129,16 +136,16 @@ class Ejbca(object):
             if file_ins_hnd is not None:
                 file_ins_hnd.close()
 
-    def ant_deploy(self):
+    def cli_cmd(self, cmd, log_obj=None, write_dots=False, on_out=None, on_err=None, ant_answer=True):
         """
-        Runs ant_deploy task
-        Should not be needed, is performed only once
+        Runs command line task
+        Used for ant and jboss-cli.sh
         :return:
         """
         feeder = Feeder()
         cwd = self.get_ejbca_home()
 
-        p = run('ant deploy',
+        p = run(cmd,
                 input=feeder, async=True,
                 stdout=Capture(buffer_size=1),
                 stderr=Capture(buffer_size=1),
@@ -147,11 +154,22 @@ class Ejbca(object):
         out_acc = []
         err_acc = []
         ret_code = 1
+        log = None
+        close_log = False
 
-        while len(p.commands) == 0:
-            time.sleep(0.15)
+        # Logging - either filename or logger itself
+        if log_obj is not None:
+            if isinstance(log_obj, types.StringTypes):
+                util.delete_file_backup(log_obj)
+                log = util.safe_open(log_obj, mode='w', chmod=0o600)
+                close_log = True
+            else:
+                log = log_obj
 
         try:
+            while len(p.commands) == 0:
+                time.sleep(0.15)
+
             while p.commands[0].returncode is None:
                 out = p.stdout.readline()
                 err = p.stderr.readline()
@@ -159,15 +177,35 @@ class Ejbca(object):
                 # If output - react on input challenges
                 if out is not None and len(out) > 0:
                     out_acc.append(out)
-                    if out.startswith('Please enter'):            # default - use default value, no starving
-                        feeder.feed('\n')
-                    elif out.startswith('[input] Please enter'):  # default - use default value, no starving
-                        feeder.feed('\n')
+
+                    if log is not None:
+                        log.write(out)
+                        log.flush()
+
+                    if write_dots:
+                        sys.stderr.write('.')
+
+                    if on_out is not None:
+                        on_out(out, feeder)
+                    elif ant_answer:
+                        if out.startswith('Please enter'):            # default - use default value, no starving
+                            feeder.feed('\n')
+                        elif out.startswith('[input] Please enter'):  # default - use default value, no starving
+                            feeder.feed('\n')
 
                 # Collect error
                 if err is not None and len(err)>0:
                     err_acc.append(err)
-                    sys.stderr.write('stderr: ' + err + "\n")
+
+                    if log is not None:
+                        log.write(err)
+                        log.flush()
+
+                    if write_dots:
+                        sys.stderr.write('.')
+
+                    if on_err is not None:
+                        on_err(err, feeder)
 
                 p.commands[0].poll()
                 time.sleep(0.01)
@@ -177,24 +215,66 @@ class Ejbca(object):
             # Collect output to accumulator
             rest_out = p.stdout.readlines()
             if rest_out is not None and len(rest_out) > 0:
-                for i in rest_out: out_acc.append(i)
+                for out in rest_out:
+                    out_acc.append(out)
+                    if on_out is not None:
+                        on_out(out, feeder)
 
             # Collect error to accumulator
             rest_err = p.stderr.readlines()
             if rest_err is not None and len(rest_err) > 0:
-                for i in rest_err: err_acc.append(i)
-                sys.stderr.write('stderr: ' + '\n'.join(p.stderr.readlines()) + '\n')
+                for err in rest_err:
+                    err_acc.append(err)
+                    if on_err is not None:
+                        on_err(err, feeder)
 
-            if ret_code != 0:
-                sys.stderr.write('Error, process returned with invalid result code: %s\n' % p.commands[0].returncode)
+            if write_dots:
+                sys.stderr.write('\n')
 
             return ret_code, out_acc, err_acc
 
         finally:
             feeder.close()
+            if close_log:
+                log.close()
         pass
 
+    def ant_cmd(self, cmd, log_obj=None, write_dots=False, on_out=None, on_err=None):
+        ret, out, err = self.cli_cmd('ant ' + cmd, log_obj=log_obj, write_dots=write_dots, on_out=on_out, on_err=on_err, ant_answer=True)
+        if ret != 0:
+            sys.stderr.write('Error, process returned with invalid result code: %s\n' % ret)
+            if isinstance(log_obj, types.StringTypes):
+                sys.stderr.write('For more details please refer to %s \n' % log_obj)
+        return ret, out, err
+
+    def ant_deploy(self):
+        return self.ant_cmd('deploy', log_obj='/tmp/ant-deploy.log', write_dots=self.print_output)
+
+    def ant_deployear(self):
+        return self.ant_cmd('deployear', log_obj='/tmp/ant-deployear.log', write_dots=self.print_output)
+
+    def ant_install_answer(self, out, feeder):
+        if 'truststore with the CA certificate for https' in out:
+            feeder.feed(self.java_pass + '\n')
+        elif 'keystore with the TLS key for https' in out:
+            feeder.feed(self.http_pass + '\n')
+        elif 'the superadmin password' in out:
+            feeder.feed(self.superadmin_pass + '\n')
+        elif 'password CA token password':
+            feeder.feed('\n')
+        elif out.startswith('Please enter'):          # default - use default value, no starving
+            feeder.feed('\n')
+        elif out.startswith('[input] Please enter'):  # default - use default value, no starving
+            feeder.feed('\n')
+
     def ant_install(self):
+        """
+        Installation
+        :return:
+        """
+        return self.ant_cmd('install', log_obj='/tmp/ant-install.log', write_dots=self.print_output, on_out=self.ant_install_answer)
+
+    def ant_install2(self):
         """
         install a new EJBCA instance.
         Note the database must be removed before running this. Install target can
@@ -276,29 +356,22 @@ class Ejbca(object):
 
         return ret_code
 
-    def jboss_stop(self):
-        """
-        Stops Jboss server, blocking
-        :return:
-        """
-        p = subprocess.Popen(['/etc/init.d/jboss', 'stop'])
-        p.communicate()
-        return p.wait()
-        # if done with sarge - jboss is terminated when python is terminated...
-        # p = run('/etc/init.d/jboss stop')
-        # return p.commands[0].returncode
+    def jboss_cmd(self, cmd):
+        cli = os.path.abspath(os.path.join(self.get_jboss_home(), self.JBOSS_CLI))
+        cli_cmd = cli + (" -c '%s'" % cmd)
 
-    def jboss_start(self):
-        """
-        Starts jboss server, blocking
-        :return:
-        """
-        p = subprocess.Popen(['/etc/init.d/jboss', 'start'])
-        p.communicate()
-        return p.wait()
-        # if done with sarge - jboss is terminated when python is terminated...
-        # p = run('/etc/init.d/jboss start')
-        # return p.commands[0].returncode
+        with open('/tmp/jboss-cli.log', 'a+') as logger:
+            ret, out, err = self.cli_cmd(cli_cmd, log_obj=logger, write_dots=self.print_output, ant_answer=False)
+            return ret, out, err
+
+    def jboss_reload(self):
+        return self.jboss_cmd(':reload')
+
+    def jboss_undeploy(self):
+        return self.jboss_cmd('undeploy ejbca.ear')
+
+    def jboss_remove_datasource(self):
+        return self.jboss_cmd('data-source remove --name=ejbcads')
 
     def jboss_backup_database(self):
         """
@@ -308,10 +381,12 @@ class Ejbca(object):
         jboss_dir = self.get_jboss_home()
         db1 = os.path.join(jboss_dir, 'ejbcadb.h2.db')
         db2 = os.path.join(jboss_dir, 'ejbcadb.trace.db')
+        db3 = os.path.join(jboss_dir, 'ejbcadb.lock.db')
 
         backup1 = util.delete_file_backup(db1)
         backup2 = util.delete_file_backup(db2)
-        return backup1, backup2
+        backup3 = util.delete_file_backup(db3)
+        return backup1, backup2, backup3
 
     def backup_passwords(self):
         """
@@ -335,16 +410,33 @@ class Ejbca(object):
         """
 
         # 1. update properties file
+        if self.print_output:
+            print " - Updating settings"
         self.update_properties()
         self.backup_passwords()
 
-        # 2. and install
-        self.jboss_stop()
+        # 2. Undeploy original EJBCA
+        if self.print_output:
+            print " - Cleaning JBoss environment (DB backup)"
+        self.jboss_undeploy()
+        self.jboss_remove_datasource()
         self.jboss_backup_database()
-        self.jboss_start()
 
-        self.ejbca_install_result = self.ant_install()
-        pass
+        # 3. deploy
+        if self.print_output:
+            print " - Deploying EJBCA"
+        res, out, err = self.ant_deploy()
+        self.ejbca_install_result = res
+        if res != 0:
+            return 2
+
+        # 4. install
+        if self.print_output:
+            print " - Installing EJBCA"
+        res, out, err = self.ant_install()
+        self.ejbca_install_result = res
+        return res
+
 
 
 

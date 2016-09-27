@@ -69,8 +69,8 @@ class App(Cmd):
             # EJBCA configuration
             print("Going to install EJBCA")
             print("  This may take 5-15 minutes, please, do not interrupt the installation")
-            print("  and wait until the process completes")
-            ejbca = Ejbca()
+            print("  and wait until the process completes.\n")
+            ejbca = Ejbca(print_output=True)
             ejbca.configure()
             if ejbca.ejbca_install_result != 0:
                 print("\nEJBCA installation error")
