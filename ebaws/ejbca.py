@@ -299,22 +299,25 @@ class Ejbca(object):
 
     def jboss_rollback_ejbca(self):
         cmds = ['/core-service=management/security-realm=SSLRealm/authentication=truststore:remove',
-                '/core-service=management/security-realm=SSLRealm/server-identity=ssl:remove'
-                '/core-service=management/security-realm=SSLRealm:remove'
-                '/socket-binding-group=standard-sockets/socket-binding=httpspub:remove'
-                '/subsystem=undertow/server=default-server/https-listener=httpspub:remove'
-                '/socket-binding-group=standard-sockets/socket-binding=httpspriv:remove'
-                '/subsystem=undertow/server=default-server/https-listener=httpspriv:remove'
-                '/socket-binding-group=standard-sockets/socket-binding=http:remove'
-                '/subsystem=undertow/server=default-server/http-listener=http:remove'
-                '/subsystem=undertow/server=default-server/http-listener=default:remove'
-                '/system-property=org.apache.catalina.connector.URI_ENCODING:remove'
-                '/system-property=org.apache.catalina.connector.USE_BODY_ENCODING_FOR_QUERY_STRING:remove'
-                '/interfaces=/interface=http:remove'
-                '/interfaces=/interface=httpspub:remove'
-                '/interfaces=/interface=httpspriv:remove']
+                '/core-service=management/security-realm=SSLRealm/server-identity=ssl:remove',
+                '/core-service=management/security-realm=SSLRealm:remove',
+                '/socket-binding-group=standard-sockets/socket-binding=httpspub:remove',
+                '/subsystem=undertow/server=default-server/https-listener=httpspub:remove',
+                '/socket-binding-group=standard-sockets/socket-binding=httpspriv:remove',
+                '/subsystem=undertow/server=default-server/https-listener=httpspriv:remove',
+                '/socket-binding-group=standard-sockets/socket-binding=http:remove',
+                '/subsystem=undertow/server=default-server/http-listener=http:remove',
+                '/subsystem=undertow/server=default-server/http-listener=default:remove',
+                ':reload',
+
+                '/system-property=org.apache.catalina.connector.URI_ENCODING:remove',
+                '/system-property=org.apache.catalina.connector.USE_BODY_ENCODING_FOR_QUERY_STRING:remove',
+
+                '/interface=http:remove',
+                '/interface=httpspub:remove',
+                '/interface=httpspriv:remove']
         for cmd in cmds:
-            self.jboss_cmd(cmd)    
+            self.jboss_cmd(cmd)
         self.jboss_reload()
 
     def jboss_backup_database(self):
