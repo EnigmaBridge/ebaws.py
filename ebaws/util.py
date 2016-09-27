@@ -115,7 +115,7 @@ def check_permissions(filepath, mode, uid=0):
     return stat.S_IMODE(file_stat.st_mode) == mode and file_stat.st_uid == uid
 
 
-def delete_file_backup(path, chmod=0o644):
+def delete_file_backup(path, chmod=0o644, backup_dir=None):
     """
     Backup the current file by moving it to a new file
     :param path:
@@ -125,7 +125,12 @@ def delete_file_backup(path, chmod=0o644):
     """
     backup_path = None
     if os.path.exists(path):
-        fhnd, fname = unique_file(path, chmod)
+        backup_path = path
+        if backup_dir is not None:
+            opath, otail = os.path.split(path)
+            backup_path = os.path.join(backup_dir, otail)
+
+        fhnd, fname = unique_file(backup_path, chmod)
         fhnd.close()
         shutil.move(path, fname)
         backup_path = fname

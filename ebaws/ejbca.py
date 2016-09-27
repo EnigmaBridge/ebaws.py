@@ -25,6 +25,7 @@ class Ejbca(object):
     P12_FILE = 'p12/superadmin.p12'
 
     PASSWORDS_FILE = '/root/ejbca.passwords'
+    DB_BACKUPS = '/root/ejbcadb'
 
     JBOSS_CLI = 'bin/jboss-cli.sh'
 
@@ -390,9 +391,11 @@ class Ejbca(object):
         db2 = os.path.join(jboss_dir, 'ejbcadb.trace.db')
         db3 = os.path.join(jboss_dir, 'ejbcadb.lock.db')
 
-        backup1 = util.delete_file_backup(db1)
-        backup2 = util.delete_file_backup(db2)
-        backup3 = util.delete_file_backup(db3)
+        util.make_or_verify_dir(self.DB_BACKUPS)
+
+        backup1 = util.delete_file_backup(db1, backup_dir=self.DB_BACKUPS)
+        backup2 = util.delete_file_backup(db2, backup_dir=self.DB_BACKUPS)
+        backup3 = util.delete_file_backup(db3, backup_dir=self.DB_BACKUPS)
         return backup1, backup2, backup3
 
     def backup_passwords(self):
