@@ -164,7 +164,7 @@ class Ejbca(object):
         # Logging - either filename or logger itself
         if log_obj is not None:
             if isinstance(log_obj, types.StringTypes):
-                util.delete_file_backup(log_obj)
+                util.delete_file_backup(log_obj, chmod=0o600)
                 log = util.safe_open(log_obj, mode='w', chmod=0o600)
                 close_log = True
             else:
