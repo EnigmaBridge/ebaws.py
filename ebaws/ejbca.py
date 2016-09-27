@@ -147,8 +147,8 @@ class Ejbca(object):
         default_cwd = self.get_ejbca_home()
         p = run(cmd,
                 input=feeder, async=True,
-                stdout=Capture(buffer_size=1),
-                stderr=Capture(buffer_size=1),
+                stdout=Capture(),
+                stderr=Capture(),
                 cwd=cwd if cwd is not None else default_cwd)
 
         out_acc = []
@@ -298,12 +298,24 @@ class Ejbca(object):
         return self.jboss_cmd('data-source remove --name=ejbcads')
 
     def jboss_rollback_ejbca(self):
-        self.jboss_cmd('/subsystem=remoting/http-connector=http-remoting-connector:remove')
-        self.jboss_cmd('/subsystem=undertow/server=default-server/http-listener=default:remove')
-        self.jboss_cmd('/socket-binding-group=standard-sockets/socket-binding=http:remove')
-        self.jboss_cmd('/interface=http:remove()')
-        self.jboss_cmd('/interface=httpspub:remove()')
-        self.jboss_cmd('/interface=httpspriv:remove()')
+        cmds = ['/core-service=management/security-realm=SSLRealm/authentication=truststore:remove',
+                '/core-service=management/security-realm=SSLRealm/server-identity=ssl:remove'
+                '/core-service=management/security-realm=SSLRealm:remove'
+                '/socket-binding-group=standard-sockets/socket-binding=httpspub:remove'
+                '/subsystem=undertow/server=default-server/https-listener=httpspub:remove'
+                '/socket-binding-group=standard-sockets/socket-binding=httpspriv:remove'
+                '/subsystem=undertow/server=default-server/https-listener=httpspriv:remove'
+                '/socket-binding-group=standard-sockets/socket-binding=http:remove'
+                '/subsystem=undertow/server=default-server/http-listener=http:remove'
+                '/subsystem=undertow/server=default-server/http-listener=default:remove'
+                '/system-property=org.apache.catalina.connector.URI_ENCODING:remove'
+                '/system-property=org.apache.catalina.connector.USE_BODY_ENCODING_FOR_QUERY_STRING:remove'
+                '/interfaces=/interface=http:remove'
+                '/interfaces=/interface=httpspub:remove'
+                '/interfaces=/interface=httpspriv:remove']
+        for cmd in cmds:
+            self.jboss_cmd(cmd)    
+        self.jboss_reload()
 
     def jboss_backup_database(self):
         """
