@@ -491,8 +491,8 @@ class Ejbca(object):
         self.jboss_fix_privileges()
         self.jboss_reload()
 
-        # 3. deploy, 3 attempts
-        for i in range(0, 3):
+        # 3. deploy, 5 attempts
+        for i in range(0, 5):
             if self.print_output:
                 print "\n - Deploying EJBCA" if i == 0 else "\n - Deploying EJBCA, attempt %d" % (i+1)
             res, out, err = self.ant_deploy()
