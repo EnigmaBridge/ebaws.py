@@ -17,7 +17,7 @@ class Ejbca(object):
     """
 
     # Default home dirs
-    EJBCA_HOME = '/home/ec2-user/ejbca_ce_6_3_1_1'
+    EJBCA_HOME = '/opt/ejbca_ce_6_3_1_1'
     JBOSS_HOME = '/opt/jboss-eap-6.4.0'
 
     INSTALL_PROPERTIES_FILE = 'conf/install.properties'
@@ -137,20 +137,19 @@ class Ejbca(object):
             if file_ins_hnd is not None:
                 file_ins_hnd.close()
 
-    def cli_cmd(self, cmd, log_obj=None, write_dots=False, on_out=None, on_err=None, ant_answer=True):
+    def cli_cmd(self, cmd, log_obj=None, write_dots=False, on_out=None, on_err=None, ant_answer=True, cwd=None):
         """
         Runs command line task
         Used for ant and jboss-cli.sh
         :return:
         """
         feeder = Feeder()
-        cwd = self.get_ejbca_home()
-
+        default_cwd = self.get_ejbca_home()
         p = run(cmd,
                 input=feeder, async=True,
                 stdout=Capture(buffer_size=1),
                 stderr=Capture(buffer_size=1),
-                cwd=cwd)
+                cwd=cwd if cwd is not None else default_cwd)
 
         out_acc = []
         err_acc = []
@@ -247,7 +246,7 @@ class Ejbca(object):
         pass
 
     def ant_cmd(self, cmd, log_obj=None, write_dots=False, on_out=None, on_err=None):
-        ret, out, err = self.cli_cmd('ant ' + cmd, log_obj=log_obj, write_dots=write_dots, on_out=on_out, on_err=on_err, ant_answer=True)
+        ret, out, err = self.cli_cmd('sudo -E -H -u jboss ant ' + cmd, log_obj=log_obj, write_dots=write_dots, on_out=on_out, on_err=on_err, ant_answer=True)
         if ret != 0:
             sys.stderr.write('Error, process returned with invalid result code: %s\n' % ret)
             if isinstance(log_obj, types.StringTypes):
@@ -398,6 +397,12 @@ class Ejbca(object):
         backup3 = util.delete_file_backup(db3, backup_dir=self.DB_BACKUPS)
         return backup1, backup2, backup3
 
+    def jboss_fix_privileges(self):
+        p = subprocess.Popen('sudo chown -R jboss:jboss ' + self.get_jboss_home(), shell=True)
+        p.wait()
+        p = subprocess.Popen('sudo chown -R jboss:jboss ' + self.get_ejbca_home(), shell=True)
+        p.wait()
+
     def backup_passwords(self):
         """
         Backups the generated passwords to /root/ejbca.passwords
@@ -431,6 +436,7 @@ class Ejbca(object):
         self.jboss_undeploy()
         self.jboss_remove_datasource()
         self.jboss_backup_database()
+        self.jboss_fix_privileges()
 
         # 3. deploy
         if self.print_output:
@@ -443,8 +449,10 @@ class Ejbca(object):
         # 4. install
         if self.print_output:
             print " - Installing EJBCA"
+        self.jboss_fix_privileges()
         res, out, err = self.ant_install()
         self.ejbca_install_result = res
+        self.jboss_fix_privileges()
         return res
 
 
