@@ -188,9 +188,9 @@ class Ejbca(object):
                     if on_out is not None:
                         on_out(out, feeder)
                     elif ant_answer:
-                        if out.startswith('Please enter'):            # default - use default value, no starving
+                        if out.strip().startswith('Please enter'):            # default - use default value, no starving
                             feeder.feed('\n')
-                        elif out.startswith('[input] Please enter'):  # default - use default value, no starving
+                        elif out.strip().startswith('[input] Please enter'):  # default - use default value, no starving
                             feeder.feed('\n')
 
                 # Collect error
@@ -254,6 +254,7 @@ class Ejbca(object):
         return self.ant_cmd('deployear', log_obj='/tmp/ant-deployear.log', write_dots=self.print_output)
 
     def ant_install_answer(self, out, feeder):
+        out = out.strip()
         if 'truststore with the CA certificate for https' in out:
             feeder.feed(self.java_pass + '\n')
         elif 'keystore with the TLS key for https' in out:
