@@ -289,7 +289,9 @@ class Ejbca(object):
             return ret, out, err
 
     def jboss_reload(self):
-        return self.jboss_cmd(':reload')
+        ret = self.jboss_cmd(':reload')
+        time.sleep(5)
+        return ret
 
     def jboss_undeploy(self):
         return self.jboss_cmd('undeploy ejbca.ear')
