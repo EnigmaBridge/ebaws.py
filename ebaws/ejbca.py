@@ -7,6 +7,7 @@ import time
 import sys
 import types
 import subprocess
+import shutil
 
 __author__ = 'dusanklinec'
 
@@ -19,6 +20,9 @@ class Ejbca(object):
     # Default home dirs
     EJBCA_HOME = '/opt/ejbca_ce_6_3_1_1'
     JBOSS_HOME = '/opt/jboss-eap-6.4.0'
+    JBOSS_USER = 'jboss'
+    USER_HOME = '/home/ec2-user'
+    SSH_USER = 'ec2-user'
 
     INSTALL_PROPERTIES_FILE = 'conf/install.properties'
     WEB_PROPERTIES_FILE = 'conf/web.properties'
@@ -243,7 +247,9 @@ class Ejbca(object):
         pass
 
     def ant_cmd(self, cmd, log_obj=None, write_dots=False, on_out=None, on_err=None):
-        ret, out, err = self.cli_cmd('sudo -E -H -u jboss ant ' + cmd, log_obj=log_obj, write_dots=write_dots, on_out=on_out, on_err=on_err, ant_answer=True)
+        ret, out, err = self.cli_cmd('sudo -E -H -u %s ant %s' % (self.JBOSS_USER, cmd),
+                                     log_obj=log_obj, write_dots=write_dots,
+                                     on_out=on_out, on_err=on_err, ant_answer=True)
         if ret != 0:
             sys.stderr.write('\nError, process returned with invalid result code: %s\n' % ret)
             if isinstance(log_obj, types.StringTypes):
@@ -282,10 +288,12 @@ class Ejbca(object):
 
     def jboss_cmd(self, cmd):
         cli = os.path.abspath(os.path.join(self.get_jboss_home(), self.JBOSS_CLI))
-        cli_cmd = cli + (" -c '%s'" % cmd)
+        cli_cmd = 'sudo -E -H -u %s %s -c \'%s\'' % (self.JBOSS_USER, cli, cmd)
 
         with open('/tmp/jboss-cli.log', 'a+') as logger:
-            ret, out, err = self.cli_cmd(cli_cmd, log_obj=logger, write_dots=self.print_output, ant_answer=False)
+            ret, out, err = self.cli_cmd(cli_cmd, log_obj=logger,
+                                         write_dots=self.print_output, ant_answer=False,
+                                         cwd=self.get_jboss_home())
             return ret, out, err
 
     def jboss_reload(self):
@@ -346,9 +354,9 @@ class Ejbca(object):
         return backup1, backup2, backup3
 
     def jboss_fix_privileges(self):
-        p = subprocess.Popen('sudo chown -R jboss:jboss ' + self.get_jboss_home(), shell=True)
+        p = subprocess.Popen('sudo chown -R %s:%s %s' % (self.JBOSS_USER, self.JBOSS_USER, self.get_jboss_home()), shell=True)
         p.wait()
-        p = subprocess.Popen('sudo chown -R jboss:jboss ' + self.get_ejbca_home(), shell=True)
+        p = subprocess.Popen('sudo chown -R %s:%s %s' % (self.JBOSS_USER, self.JBOSS_USER, self.get_ejbca_home()), shell=True)
         p.wait()
 
     def jboss_restart(self):
