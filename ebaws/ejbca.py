@@ -147,8 +147,8 @@ class Ejbca(object):
         default_cwd = self.get_ejbca_home()
         p = run(cmd,
                 input=feeder, async=True,
-                stdout=Capture(),
-                stderr=Capture(),
+                stdout=Capture(buffer_size=1),
+                stderr=Capture(buffer_size=1),
                 cwd=cwd if cwd is not None else default_cwd)
 
         out_acc = []
