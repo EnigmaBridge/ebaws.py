@@ -234,9 +234,6 @@ class Ejbca(object):
                     if on_err is not None:
                         on_err(err, feeder)
 
-            if write_dots:
-                sys.stderr.write('\n')
-
             return ret_code, out_acc, err_acc
 
         finally:
@@ -248,9 +245,11 @@ class Ejbca(object):
     def ant_cmd(self, cmd, log_obj=None, write_dots=False, on_out=None, on_err=None):
         ret, out, err = self.cli_cmd('sudo -E -H -u jboss ant ' + cmd, log_obj=log_obj, write_dots=write_dots, on_out=on_out, on_err=on_err, ant_answer=True)
         if ret != 0:
-            sys.stderr.write('Error, process returned with invalid result code: %s\n' % ret)
+            sys.stderr.write('\nError, process returned with invalid result code: %s\n' % ret)
             if isinstance(log_obj, types.StringTypes):
                 sys.stderr.write('For more details please refer to %s \n' % log_obj)
+        if write_dots:
+            sys.stderr.write('\n')
         return ret, out, err
 
     def ant_deploy(self):
@@ -380,6 +379,14 @@ class Ejbca(object):
     def jboss_remove_datasource(self):
         return self.jboss_cmd('data-source remove --name=ejbcads')
 
+    def jboss_rollback_ejbca(self):
+        self.jboss_cmd('/subsystem=remoting/http-connector=http-remoting-connector:remove')
+        self.jboss_cmd('/subsystem=undertow/server=default-server/http-listener=default:remove')
+        self.jboss_cmd('/socket-binding-group=standard-sockets/socket-binding=http:remove')
+        self.jboss_cmd('/interface=http:remove()')
+        self.jboss_cmd('/interface=httpspub:remove()')
+        self.jboss_cmd('/interface=httpspriv:remove()')
+
     def jboss_backup_database(self):
         """
         Removes original database, moving it to a backup location.
@@ -435,12 +442,15 @@ class Ejbca(object):
             print " - Cleaning JBoss environment (DB backup)"
         self.jboss_undeploy()
         self.jboss_remove_datasource()
+        self.jboss_rollback_ejbca()
+        self.jboss_reload()
         self.jboss_backup_database()
         self.jboss_fix_privileges()
+        self.jboss_reload()
 
         # 3. deploy
         if self.print_output:
-            print " - Deploying EJBCA"
+            print "\n - Deploying EJBCA"
         res, out, err = self.ant_deploy()
         self.ejbca_install_result = res
         if res != 0:
