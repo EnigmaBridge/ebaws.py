@@ -30,9 +30,10 @@ class InfoLoader(object):
     AMI_KEY_PRODUCT_CODES = 'product-codes'
     AMI_KEY_PUBLIC_IP = 'public-ipv4'
     AMI_KEY_LOCAL_IP = 'local-ipv4'
+    AMI_KEY_PUBLIC_HOSTNAME = 'public-hostname'
 
     AMI_KEYS = [AMI_KEY_ID, AMI_KEY_INSTANCE_ID, AMI_KEY_INSTANCE_TYPE, AMI_KEY_PLACEMENT, AMI_KEY_PRODUCT_CODES,
-                AMI_KEY_PUBLIC_IP, AMI_KEY_LOCAL_IP]
+                AMI_KEY_PUBLIC_IP, AMI_KEY_LOCAL_IP, AMI_KEY_PUBLIC_HOSTNAME]
 
     def __init__(self, *args, **kwargs):
         self.ami_id = None
@@ -43,6 +44,7 @@ class InfoLoader(object):
         self.ami_results = None
         self.ami_public_ip = None
         self.ami_local_ip = None
+        self.ami_public_hostname = None
         self.ec2_metadata_executable = None
 
     def env_check(self):
@@ -84,6 +86,8 @@ class InfoLoader(object):
                 self.ami_local_ip = c_val
             elif c_key == self.AMI_KEY_PUBLIC_IP:
                 self.ami_public_ip = c_val
+            elif c_key == self.AMI_KEY_PUBLIC_HOSTNAME:
+                self.ami_public_hostname = c_val
         pass
 
 
