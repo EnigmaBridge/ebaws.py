@@ -379,6 +379,25 @@ class Ejbca(object):
     def get_p12_file(self):
         return os.path.abspath(os.path.join(self.get_ejbca_home(), self.P12_FILE))
 
+    def copy_p12_file(self):
+        """
+        Copies p12 file to the home directory & chowns so user can download it via scp
+        :return:
+        """
+        p12 = self.get_p12_file()
+        new_p12 = os.path.abspath(os.path.join(self.USER_HOME, 'ejbca-admin.p12'))
+        os.remove(new_p12)
+
+        # copy in a safe mode - create file non readable by others, copy
+        with open(p12, 'r') as src_p12:
+            with util.safe_open(new_p12, mode='w', chmod=0o600) as dst_p12:
+                shutil.copyfileobj(src_p12, dst_p12)
+
+        p = subprocess.Popen('sudo chown %s:%s %s' % (self.SSH_USER, self.SSH_USER, new_p12), shell=True)
+        p.wait()
+
+        return new_p12
+
     def configure(self):
         """
         Configures EJBCA for installation deployment

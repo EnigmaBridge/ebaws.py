@@ -74,10 +74,13 @@ class App(Cmd):
             ejbca = Ejbca(print_output=True)
             ejbca.configure()
             if ejbca.ejbca_install_result != 0:
-                print("\nEJBCA installation error")
+                print("\nEJBCA installation error, please, try again.")
             else:
                 print("\nEJBCA installed successfully.")
-                print("Download p12 file %s" % ejbca.get_p12_file())
+                new_p12 = ejbca.copy_p12_file()
+
+                print("Download p12 file %s" % new_p12)
+                print(" e.g.: scp %s:%s ." % (reg_svc.info_loader.ami_public_ip, new_p12))
                 print("Export password: %s" % ejbca.superadmin_pass)
 
         except Exception as ex:
