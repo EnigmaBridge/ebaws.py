@@ -331,7 +331,7 @@ class Ejbca(object):
     def jboss_restart(self):
         os.spawnlp(os.P_NOWAIT, "sudo", "bash", "bash", "-c",
                    "setsid /etc/init.d/jboss-eap-6.4.0 restart 2>/dev/null >/dev/null </dev/null &")
-        time.sleep(15)
+        time.sleep(20)
 
     def backup_passwords(self):
         """
