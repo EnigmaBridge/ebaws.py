@@ -15,6 +15,8 @@ import errors
 import shutil
 import random
 import string
+import pwd
+import grp
 
 
 logger = logging.getLogger(__name__)
@@ -115,9 +117,27 @@ def check_permissions(filepath, mode, uid=0):
     return stat.S_IMODE(file_stat.st_mode) == mode and file_stat.st_uid == uid
 
 
-def delete_file_backup(path, chmod=0o644, backup_dir=None):
+def chown(path, user, group=None, follow_symlinks=False):
     """
-    Backup the current file by moving it to a new file
+    Changes the ownership of the path.
+    :param path:
+    :param user:
+    :param group:
+    :return:
+    """
+    if group is None:
+        group = user
+
+    uid = pwd.getpwnam(user).pw_uid
+    gid = grp.getgrnam(group).gr_gid
+    os.chown(path, uid, gid)
+
+
+def file_backup(path, chmod=0o644, backup_dir=None):
+    """
+    Backup the given file by copying it to a new file
+    Copy is preferred to move. Move can keep processes working with the opened file after move operation.
+
     :param path:
     :param mode:
     :param chmod:
@@ -130,12 +150,52 @@ def delete_file_backup(path, chmod=0o644, backup_dir=None):
             opath, otail = os.path.split(path)
             backup_path = os.path.join(backup_dir, otail)
 
-        fhnd, fname = unique_file(backup_path, chmod)
-        fhnd.close()
-        shutil.copyfile(path, fname)
-        backup_path = fname
+        if chmod is None:
+            chmod = os.stat(path).st_mode & 0777
 
-        # Copy is preferred to move. Move can keep processes working with the opened file after move operation.
+        with open(path, 'r') as src:
+            fhnd, fname = unique_file(backup_path, chmod)
+            with fhnd:
+                shutil.copyfileobj(src, fhnd)
+                backup_path = fname
+    return backup_path
+
+
+def dir_backup(path, chmod=0o644, backup_dir=None):
+    """
+    Backup the given directory
+    :param path:
+    :param chmod:
+    :param backup_dir:
+    :return:
+    """
+    backup_path = None
+    if os.path.exists(path):
+        backup_path = path
+        if backup_dir is not None:
+            opath, otail = os.path.split(path)
+            backup_path = os.path.join(backup_dir, otail)
+
+        if chmod is None:
+            chmod = os.stat(path).st_mode & 0777
+
+        backup_path = safe_new_dir(backup_path, mode=chmod)
+        os.rmdir(backup_path)
+        shutil.copytree(path, backup_path)
+    return backup_path
+
+
+def delete_file_backup(path, chmod=0o644, backup_dir=None):
+    """
+    Backup the current file by moving it to a new file
+    :param path:
+    :param mode:
+    :param chmod:
+    :return:
+    """
+    backup_path = None
+    if os.path.exists(path):
+        backup_path = file_backup(path, chmod=chmod, backup_dir=backup_dir)
         os.remove(path)
     return backup_path
 
