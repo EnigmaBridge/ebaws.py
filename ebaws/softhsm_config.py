@@ -33,11 +33,11 @@ class SoftHsmV1Config(object):
                 "jitterRand": 50
             },
 
-            "createTpl": {
-                "environment": "prod",
-                "maxtps": "unlimited",
-                "core": "empty",
-                "credit": 32000
+            'createTpl': {
+                'environment': 'dev',
+                'maxtps': 'one',
+                'core': 'empty',
+                'credit': 32000
             }
         }
 
