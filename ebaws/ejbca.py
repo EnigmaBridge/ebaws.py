@@ -475,6 +475,49 @@ class Ejbca(object):
 
         return new_p12
 
+    def ejbca_get_cwd(self):
+        return os.path.join(self.get_ejbca_home(), 'bin')
+
+    def ejbca_get_command(self, cmd):
+        return 'sudo -E -H -u %s %s/ejbca.sh %s' % (self.JBOSS_USER, self.ejbca_get_cwd(), cmd)
+
+    def ejbca_cmd(self, cmd, retry_attempts=3, write_dots=False, on_out=None, on_err=None):
+        """
+        Executes cd $EJBCA_HOME/bin
+        ./ejbca.sh $*
+
+        :param cmd:
+        :param retry_attempts:
+        :return:
+        """
+        cwd = self.ejbca_get_cwd()
+        ret, out, err = -1, None, None
+        cmd_exec = self.ejbca_get_command(cmd)
+
+        for i in range(0, retry_attempts):
+            ret, out, err = self.cli_cmd(
+                cmd_exec,
+                log_obj=None, write_dots=write_dots,
+                on_out=on_out, on_err=on_err,
+                ant_answer=False, cwd=cwd)
+
+            if ret == 0:
+                return ret, out, err
+
+        return ret, out, err
+
+    def ejbca_add_sofhsm_token(self, softhsm=None, name='EnigmaBridge', slot_id=0):
+        so_path = softhsm.get_so_path() if softhsm is not None else '/usr/lib64/softhsm/libsofthsm.so'
+        cmd = 'cryptotoken create ' \
+              '--token "%s" ' \
+              '--pin 0000 ' \
+              '--autoactivate TRUE ' \
+              '--type "PKCS11CryptoToken" ' \
+              '--lib "%s" ' \
+              '--slotlabeltype SLOT_INDEX ' \
+              '--slotlabel %d' % (name, so_path, slot_id)
+        return self.ejbca_cmd(cmd, retry_attempts=1, write_dots=self.print_output)
+
     def pkcs11_get_cwd(self):
         return os.path.join(self.get_ejbca_home(), 'bin')
 
