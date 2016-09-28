@@ -51,10 +51,16 @@ class Core(object):
     @staticmethod
     def backup_configuration(config):
         cur_name = Core.get_config_file_path()
-        fhnd, fname = util.unique_file(cur_name, 0o644)
-        fhnd.write(config.to_string()+"\n")
-        fhnd.close()
-        return fname
+        if os.path.exists(cur_name):
+            util.make_or_verify_dir(CONFIG_DIR_OLD, mode=0o644)
+
+            opath, otail = os.path.split(cur_name)
+            backup_path = os.path.join(CONFIG_DIR_OLD, otail)
+
+            fhnd, fname = util.unique_file(backup_path, 0o644)
+            with fhnd:
+                fhnd.write(config.to_string()+"\n")
+            return fname
 
     @staticmethod
     def get_default_eb_config():

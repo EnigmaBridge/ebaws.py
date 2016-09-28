@@ -1,5 +1,6 @@
 __author__ = 'dusanklinec'
 CONFIG_DIR='/etc/enigma'
+CONFIG_DIR_OLD='/etc/enigma.old'
 CONFIG_FILE='config.json'
 
 SERVER_PROCESS_DATA='process_data'
