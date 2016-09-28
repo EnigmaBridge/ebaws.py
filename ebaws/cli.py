@@ -81,8 +81,11 @@ class App(Cmd):
                 new_p12 = ejbca.copy_p12_file()
 
                 print("Download p12 file %s" % new_p12)
-                print(" e.g.: scp %s:%s ." % (reg_svc.info_loader.ami_public_ip, new_p12))
+                print(" e.g.: scp %s:%s ." % (reg_svc.info_loader.ami_public_hostname, new_p12))
                 print("Export password: %s" % ejbca.superadmin_pass)
+                print("\n\n")
+                print("Once you import p12 file to your browser you can connect to the admin interface at")
+                print("https://%s:8443/ejbca/adminweb/" % reg_svc.info_loader.ami_public_hostname)
 
         except Exception as ex:
             traceback.print_exc()
