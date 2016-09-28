@@ -119,6 +119,10 @@ class SoftHsmV1Config(object):
         slot_cfg['port'] = endpoint_process.port
         slot_cfg['enrollPort'] = endpoint_enroll.port
 
+        # Server environment?
+        if 'environment' in endpoint_process.server:
+            slot_cfg['createTpl']['environment'] = endpoint_process.server['environment']
+
         root = {'slots': [slot_cfg]}
         self.json = root
         pass
