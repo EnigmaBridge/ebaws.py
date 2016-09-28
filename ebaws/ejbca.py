@@ -479,12 +479,12 @@ class Ejbca(object):
         return os.path.join(self.get_ejbca_home(), 'bin')
 
     def pkcs11_get_command(self, cmd):
-        return 'sudo -E -H -u %s ./pkcs11HSM.sh %s' % (self.JBOSS_USER, cmd)
+        return 'sudo -E -H -u %s %s/pkcs11HSM.sh %s' % (self.JBOSS_USER, self.pkcs11_get_cwd(), cmd)
 
     def pkcs11_cmd(self, cmd, retry_attempts=3, write_dots=False, on_out=None, on_err=None):
         """
         Executes cd $EJBCA_HOME/bin
-        ./pkcs11HSM.sh
+        ./pkcs11HSM.sh $*
 
         :param cmd:
         :param retry_attempts:
@@ -492,21 +492,22 @@ class Ejbca(object):
         """
         cwd = self.pkcs11_get_cwd()
         ret, out, err = -1, None, None
+        cmd_exec = self.pkcs11_get_command(cmd)
 
         for i in range(0, retry_attempts):
             ret, out, err = self.cli_cmd(
-                self.pkcs11_get_command(cmd),
+                cmd_exec,
                 log_obj=None, write_dots=write_dots,
                 on_out=on_out, on_err=on_err,
                 ant_answer=False, cwd=cwd)
 
             if write_dots:
                 sys.stderr.write('\n')
-            if ret != 0:
-                sys.stderr.write('\nError, process returned with invalid result code: %s\n' % ret)
-            else:
+
+            if ret == 0:
                 return ret, out, err
-        return err, out, err
+
+        return ret, out, err
 
     def pkcs11_answer(self, out, feeder):
         out = out.strip()
@@ -531,7 +532,8 @@ class Ejbca(object):
         :return:
         """
         cmd = self.pkcs11_get_generate_key_cmd(softhsm=softhsm, bit_size=bit_size, alias=alias, slot_id=slot_id)
-        return self.pkcs11_cmd(cmd=cmd, retry_attempts=retry_attempts, write_dots=self.print_output, on_out=self.pkcs11_answer)
+        return self.pkcs11_cmd(cmd=cmd, retry_attempts=retry_attempts, write_dots=self.print_output,
+                               on_out=self.pkcs11_answer, on_err=self.pkcs11_answer)
 
     def pkcs11_generate_default_key_set(self, softhsm=None, slot_id=0, retry_attempts=3,
                                         sign_key_alias='signKey',
@@ -553,7 +555,6 @@ class Ejbca(object):
                                                      slot_id=slot_id, retry_attempts=retry_attempts)
 
             if ret != 0:
-                sys.stderr.write('Error in generating key %s, terminating' % alias)
                 return 1
 
             if self.print_output:
