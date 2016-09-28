@@ -429,6 +429,12 @@ class Ejbca(object):
         return jboss_works
 
     def jboss_restart(self):
+        """
+        Restarts JBoss daemon
+        Here is important to start it with setsid so daemon is started in a new shell session.
+        Otherwise Jboss would have been killed in case python terminates.
+        :return:
+        """
         os.spawnlp(os.P_NOWAIT, "sudo", "bash", "bash", "-c",
                    "setsid /etc/init.d/jboss-eap-6.4.0 restart 2>/dev/null >/dev/null </dev/null &")
         time.sleep(10)
@@ -469,6 +475,91 @@ class Ejbca(object):
 
         return new_p12
 
+    def pkcs11_get_cwd(self):
+        return os.path.join(self.get_ejbca_home(), 'bin')
+
+    def pkcs11_get_command(self, cmd):
+        return 'sudo -E -H -u %s ./pkcs11HSM.sh %s' % (self.JBOSS_USER, cmd)
+
+    def pkcs11_cmd(self, cmd, retry_attempts=3, write_dots=False, on_out=None, on_err=None):
+        """
+        Executes cd $EJBCA_HOME/bin
+        ./pkcs11HSM.sh
+
+        :param cmd:
+        :param retry_attempts:
+        :return:
+        """
+        cwd = self.pkcs11_get_cwd()
+        ret, out, err = -1, None, None
+
+        for i in range(0, retry_attempts):
+            ret, out, err = self.cli_cmd(
+                self.pkcs11_get_command(cmd),
+                log_obj=None, write_dots=write_dots,
+                on_out=on_out, on_err=on_err,
+                ant_answer=False, cwd=cwd)
+
+            if write_dots:
+                sys.stderr.write('\n')
+            if ret != 0:
+                sys.stderr.write('\nError, process returned with invalid result code: %s\n' % ret)
+            else:
+                return ret, out, err
+        return err, out, err
+
+    def pkcs11_answer(self, out, feeder):
+        out = out.strip()
+        if 'Password:' in out:
+            feeder.feed('0000\n')
+
+    def pkcs11_get_generate_key_cmd(self, softhsm=None, bit_size=2048, alias=None, slot_id=0):
+        so_path = softhsm.get_so_path() if softhsm is not None else '/usr/lib64/softhsm/libsofthsm.so'
+        return 'generate %s %s %s %s' % (so_path, bit_size, alias, slot_id)
+
+    def pkcs11_get_test_key_cmd(self, softhsm=None, slot_id=0):
+        so_path = softhsm.get_so_path() if softhsm is not None else '/usr/lib64/softhsm/libsofthsm.so'
+        return 'test %s %s' % (so_path, slot_id)
+
+    def pkcs11_generate_key(self, softhsm=None, bit_size=2048, alias=None, slot_id=0, retry_attempts=3):
+        """
+        Generates keys in the PKCS#11 token.
+        Can be used with the EJBCA.
+
+        cd $EJBCA_HOME/bin
+        ./pkcs11HSM.sh generate /usr/lib64/softhsm/libsofthsm.so 4096 signKey 0
+        :return:
+        """
+        cmd = self.pkcs11_get_generate_key_cmd(softhsm=softhsm, bit_size=bit_size, alias=alias, slot_id=slot_id)
+        return self.pkcs11_cmd(cmd=cmd, retry_attempts=retry_attempts, write_dots=self.print_output, on_out=self.pkcs11_answer)
+
+    def pkcs11_generate_default_key_set(self, softhsm=None, slot_id=0, retry_attempts=3,
+                                        sign_key_alias='signKey',
+                                        default_key_alias='defaultKey',
+                                        test_key_alias='testKey'):
+        """
+        Generates a default key set to be used with EJBCA
+        :param sign_key_alias:
+        :param default_key_alias:
+        :param test_key_alias:
+        :return:
+        """
+        aliases = [sign_key_alias, default_key_alias, test_key_alias]
+        key_sizes = [2048, 2048, 1024]
+
+        for idx,alias in enumerate(aliases):
+            key_size = key_sizes[idx]
+            ret, out, cmd = self.pkcs11_generate_key(softhsm=softhsm, bit_size=key_size, alias=alias,
+                                                     slot_id=slot_id, retry_attempts=retry_attempts)
+
+            if ret != 0:
+                sys.stderr.write('Error in generating key %s, terminating' % alias)
+                return 1
+
+            if self.print_output:
+                sys.stderr.write('.')
+        return 0
+
     def configure(self):
         """
         Configures EJBCA for installation deployment
@@ -498,7 +589,6 @@ class Ejbca(object):
         self.jboss_reload()
 
         # 3. deploy, 5 attempts
-        self.ant_client_tools()
         for i in range(0, 5):
             if self.print_output:
                 print "\n - Deploying EJBCA" if i == 0 else "\n - Deploying EJBCA, attempt %d" % (i+1)
@@ -522,6 +612,7 @@ class Ejbca(object):
             if res == 0:
                 break
 
+        self.ant_client_tools()
         self.jboss_fix_privileges()
         self.jboss_reload()
         return self.ejbca_install_result

@@ -20,6 +20,7 @@ class SoftHsmV1Config(object):
     CONFIG_FILE_BACKUP_DIR = '/etc/softhsm.old'
     SOFTHSM_DB_DIR = '/var/lib/softhsm'
     SOFTHSM_DB_BACKUP_DIR = '/var/lib/softhsm.old'
+    SOFTHSM_SO_PATH = '/usr/lib64/softhsm/libsofthsm.so'
 
     DEFAULT_SLOT_CONFIG = {
             'slot': 0,
@@ -185,4 +186,6 @@ class SoftHsmV1Config(object):
         for token in tokens:
             util.chown(token, user, user)
 
+    def get_so_path(self):
+        return self.SOFTHSM_SO_PATH
 
