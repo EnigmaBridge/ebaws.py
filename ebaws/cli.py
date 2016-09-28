@@ -2,7 +2,7 @@ from cmd2 import Cmd
 import argparse
 from core import Core
 from registration import Registration
-from softhsm_config import SoftHsmV1Config
+from softhsm import SoftHsmV1Config
 from ejbca import Ejbca
 import traceback
 
