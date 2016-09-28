@@ -11,7 +11,7 @@ class App(Cmd):
     """EnigmaBridge AWS command line interface"""
     prompt = '$> '
     intro = '-'*80 + '\n    Enigma Bridge AWS command line interface. ' \
-                     '\n    For help, type ?\n' + \
+                     '\n    For help, type usage\n' + \
                      '\n    init - initializes the EJBCA instance\n' + \
             '-'*80
 
@@ -20,8 +20,20 @@ class App(Cmd):
         config = Core.read_configuration()
         print(config.to_string())
 
+    def do_usage(self, line):
+        """Writes simple usage hints"""
+        print('init  - initializes the EJBCA instance with new identity')
+        print('usage - writes this usage info')
+
     def do_init(self, line):
-        """Initializes the EB client machine, new identity is assigned."""
+        """
+        Initializes the EB client machine, new identity is assigned.
+         - New EnigmaBridge identity is fetched
+         - EnigmaBridge PKCS#11 Proxy is configured, new token is initialized
+         - EJBCA is reinstalled with PKCS#11 support, with new certificates
+        Previous configuration data is backed up.
+        """
+
         print "Going to initialize the EB identity"
         print "WARNING! This is a destructive process!"
         print "WARNING! The previous installation will be overwritten.\n"
@@ -78,15 +90,51 @@ class App(Cmd):
             ejbca.configure()
             if ejbca.ejbca_install_result != 0:
                 print("\nEJBCA installation error, please, try again.")
-            else:
-                print("\nEJBCA installed successfully.")
-                new_p12 = ejbca.copy_p12_file()
+                return
+            print("\nEJBCA installed successfully.")
 
-                print("Download p12 file %s" % new_p12)
-                print(" e.g.: scp %s:%s ." % (reg_svc.info_loader.ami_public_hostname, new_p12))
-                print("Export password: %s" % ejbca.superadmin_pass)
-                print("\nOnce you import p12 file to your browser you can connect to the admin interface at")
-                print("https://%s:8443/ejbca/adminweb/" % reg_svc.info_loader.ami_public_hostname)
+            # Generate new keys
+            print('Going to generate EnigmaBridge keys in the crypto token:')
+            ret, out, err = ejbca.pkcs11_generate_default_key_set(softhsm=soft_config)
+            key_gen_cmds = [
+                    ejbca.pkcs11_get_generate_key_cmd(softhsm=soft_config, bit_size=2048, alias='signKey', slot_id=0),
+                    ejbca.pkcs11_get_generate_key_cmd(softhsm=soft_config, bit_size=2048, alias='defaultKey', slot_id=0),
+                    ejbca.pkcs11_get_generate_key_cmd(softhsm=soft_config, bit_size=1024, alias='testKey', slot_id=0)
+                ]
+
+            if ret != 0:
+                print('\nError generating a new keys')
+                print('You can do it later manually by calling')
+
+                for tmpcmd in key_gen_cmds:
+                    print('  %s' % ejbca.pkcs11_get_command(tmpcmd))
+
+                print('Error from the command:')
+                print(''.join(out))
+                print(''.join(err))
+            else:
+                print('\nEnigmaBridge tokens generated successfully')
+                print('You can use these newly generated keys for your CA or generate another ones with:')
+                for tmpcmd in key_gen_cmds:
+                    print('  %s' % ejbca.pkcs11_get_command(tmpcmd))
+
+            # Add SoftHSM crypto token to EJBCA
+            print('\nAdding EnigmaBridge crypto token to EJBCA:')
+            ret, out, err = ejbca.ejbca_add_sofhsm_token(softhsm=soft_config, name='EnigmaBridgeToken')
+            if ret != 0:
+                print('\nError in adding EnigmaBridge token to the EJBCA')
+                print('You can add it manually in the EJBCA admin page later')
+                print('Pin for the SoftHSMv1 (EnigmaBridge) token is 0000')
+            else:
+                print('\nEnigmaBridgeToken added to EJBCA')
+
+            # Finalize, P12 file & final instructions
+            new_p12 = ejbca.copy_p12_file()
+            print("Download p12 file %s" % new_p12)
+            print(" e.g.: scp %s:%s ." % (reg_svc.info_loader.ami_public_hostname, new_p12))
+            print("Export password: %s" % ejbca.superadmin_pass)
+            print("\nOnce you import p12 file to your browser you can connect to the admin interface at")
+            print("https://%s:8443/ejbca/adminweb/" % reg_svc.info_loader.ami_public_hostname)
 
         except Exception as ex:
             traceback.print_exc()
