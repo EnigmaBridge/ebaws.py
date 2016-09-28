@@ -1,6 +1,7 @@
 from cmd2 import Cmd
 import argparse
 import sys
+import os
 from core import Core
 from registration import Registration
 from softhsm import SoftHsmV1Config
@@ -34,6 +35,8 @@ class App(Cmd):
          - EJBCA is reinstalled with PKCS#11 support, with new certificates
         Previous configuration data is backed up.
         """
+        if not self.check_root():
+            return
 
         print "Going to initialize the EB identity"
         print "WARNING! This is a destructive process!"
@@ -163,6 +166,16 @@ class App(Cmd):
                 question = "Is this email correct? \"%s\" (Y/n):" % var
             confirmation = self.ask_proceed(question)
         return var
+
+    def check_root(self):
+        """Checks if the script was started with root - we need that for file ops :/"""
+        uid = os.getuid()
+        euid = os.geteuid()
+        if uid != 0 and euid != 0:
+            print("Error: This action requires root privileges")
+            print("Please, start the client with: sudo -E -H ebaws")
+            return False
+        return True
 
     def do_EOF(self, line):
         return True
