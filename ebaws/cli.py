@@ -94,7 +94,7 @@ class App(Cmd):
             print("\nEJBCA installed successfully.")
 
             # Generate new keys
-            print('Going to generate EnigmaBridge keys in the crypto token:')
+            print('\nGoing to generate EnigmaBridge keys in the crypto token:')
             ret, out, err = ejbca.pkcs11_generate_default_key_set(softhsm=soft_config)
             key_gen_cmds = [
                     ejbca.pkcs11_get_generate_key_cmd(softhsm=soft_config, bit_size=2048, alias='signKey', slot_id=0),
@@ -130,7 +130,7 @@ class App(Cmd):
 
             # Finalize, P12 file & final instructions
             new_p12 = ejbca.copy_p12_file()
-            print("Download p12 file %s" % new_p12)
+            print("\nDownload p12 file %s" % new_p12)
             print(" e.g.: scp %s:%s ." % (reg_svc.info_loader.ami_public_hostname, new_p12))
             print("Export password: %s" % ejbca.superadmin_pass)
             print("\nOnce you import p12 file to your browser you can connect to the admin interface at")
