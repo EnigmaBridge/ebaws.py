@@ -290,6 +290,9 @@ class Ejbca(object):
         """
         return self.ant_cmd('install', log_obj='/tmp/ant-install.log', write_dots=self.print_output, on_out=self.ant_install_answer)
 
+    def ant_client_tools(self):
+        return self.ant_cmd('clientToolBox', log_obj='/tmp/ant-clientToolBox.log', write_dots=self.print_output)
+
     def jboss_cmd(self, cmd):
         cli = os.path.abspath(os.path.join(self.get_jboss_home(), self.JBOSS_CLI))
         cli_cmd = 'sudo -E -H -u %s %s -c \'%s\'' % (self.JBOSS_USER, cli, cmd)
@@ -495,6 +498,7 @@ class Ejbca(object):
         self.jboss_reload()
 
         # 3. deploy, 5 attempts
+        self.ant_client_tools()
         for i in range(0, 5):
             if self.print_output:
                 print "\n - Deploying EJBCA" if i == 0 else "\n - Deploying EJBCA, attempt %d" % (i+1)
