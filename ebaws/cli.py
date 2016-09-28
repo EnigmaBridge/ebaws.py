@@ -46,12 +46,15 @@ class App(Cmd):
         eb_cfg = Core.get_default_eb_config()
         try:
             reg_svc = Registration(email=email, eb_cfg=eb_cfg)
+            soft_config = SoftHsmV1Config()
+            ejbca = Ejbca(print_output=True)
+
+            # New client registration.
             new_config = reg_svc.new_registration()
             conf_file = Core.write_configuration(new_config)
             print("New configuration was written to: %s\n" % conf_file)
 
             # SoftHSMv1 reconfigure
-            soft_config = SoftHsmV1Config()
             soft_config_backup_location = soft_config.backup_current_config_file()
             print("SoftHSMv1 configuration has been backed up to: %s" % soft_config_backup_location)
 
@@ -65,14 +68,13 @@ class App(Cmd):
             if backup_dir is not None:
                 print("SoftHSMv1 previous token database moved to: %s" % backup_dir)
 
-            out, err = soft_config.init_token()
+            out, err = soft_config.init_token(user=ejbca.JBOSS_USER)
             print("SoftHSMv1 initialization: %s\n" % out)
 
             # EJBCA configuration
             print("Going to install EJBCA")
             print("  This may take 5-15 minutes, please, do not interrupt the installation")
             print("  and wait until the process completes.\n")
-            ejbca = Ejbca(print_output=True)
             ejbca.configure()
             if ejbca.ejbca_install_result != 0:
                 print("\nEJBCA installation error, please, try again.")
@@ -83,8 +85,7 @@ class App(Cmd):
                 print("Download p12 file %s" % new_p12)
                 print(" e.g.: scp %s:%s ." % (reg_svc.info_loader.ami_public_hostname, new_p12))
                 print("Export password: %s" % ejbca.superadmin_pass)
-                print("\n\n")
-                print("Once you import p12 file to your browser you can connect to the admin interface at")
+                print("\nOnce you import p12 file to your browser you can connect to the admin interface at")
                 print("https://%s:8443/ejbca/adminweb/" % reg_svc.info_loader.ami_public_hostname)
 
         except Exception as ex:
