@@ -544,9 +544,6 @@ class Ejbca(object):
                 on_out=on_out, on_err=on_err,
                 ant_answer=False, cwd=cwd)
 
-            if write_dots:
-                sys.stderr.write('\n')
-
             if ret == 0:
                 return ret, out, err
 
@@ -555,7 +552,8 @@ class Ejbca(object):
     def pkcs11_answer(self, out, feeder):
         out = out.strip()
         if 'Password:' in out:
-            feeder.feed('0000\n')
+            feeder.feed('0000')
+            feeder.feed('\n')
 
     def pkcs11_get_generate_key_cmd(self, softhsm=None, bit_size=2048, alias=None, slot_id=0):
         so_path = softhsm.get_so_path() if softhsm is not None else '/usr/lib64/softhsm/libsofthsm.so'
@@ -598,11 +596,11 @@ class Ejbca(object):
                                                      slot_id=slot_id, retry_attempts=retry_attempts)
 
             if ret != 0:
-                return 1
+                return ret, out, cmd
 
             if self.print_output:
                 sys.stderr.write('.')
-        return 0
+        return 0, None, None
 
     def configure(self):
         """
