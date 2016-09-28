@@ -506,7 +506,16 @@ class Ejbca(object):
 
         return ret, out, err
 
-    def ejbca_add_sofhsm_token(self, softhsm=None, name='EnigmaBridge', slot_id=0):
+    def ejbca_add_softhsm_token(self, softhsm=None, name='EnigmaBridge', slot_id=0):
+        """
+        Adds a new crypto token to the EJBCA using CLI
+        https://www.ejbca.org/docs/userguide.html#New Crypto Tokens
+
+        :param softhsm:
+        :param name:
+        :param slot_id:
+        :return:
+        """
         so_path = softhsm.get_so_path() if softhsm is not None else '/usr/lib64/softhsm/libsofthsm.so'
         cmd = 'cryptotoken create ' \
               '--token "%s" ' \

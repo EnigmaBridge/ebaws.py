@@ -120,7 +120,7 @@ class App(Cmd):
 
             # Add SoftHSM crypto token to EJBCA
             print('\nAdding EnigmaBridge crypto token to EJBCA:')
-            ret, out, err = ejbca.ejbca_add_sofhsm_token(softhsm=soft_config, name='EnigmaBridgeToken')
+            ret, out, err = ejbca.ejbca_add_softhsm_token(softhsm=soft_config, name='EnigmaBridgeToken')
             if ret != 0:
                 print('\nError in adding EnigmaBridge token to the EJBCA')
                 print('You can add it manually in the EJBCA admin page later')
