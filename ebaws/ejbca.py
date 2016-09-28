@@ -463,7 +463,8 @@ class Ejbca(object):
         """
         p12 = self.get_p12_file()
         new_p12 = os.path.abspath(os.path.join(self.USER_HOME, 'ejbca-admin.p12'))
-        os.remove(new_p12)
+        if os.path.exists(new_p12):
+            os.remove(new_p12)
 
         # copy in a safe mode - create file non readable by others, copy
         with open(p12, 'r') as src_p12:
