@@ -17,6 +17,7 @@ __author__ = 'dusanklinec'
 class Ejbca(object):
     """
     EJBCA configuration & builder
+    https://www.ejbca.org/docs/installation.html#Install
     """
 
     # Default home dirs
@@ -31,7 +32,8 @@ class Ejbca(object):
     P12_FILE = 'p12/superadmin.p12'
 
     PASSWORDS_FILE = '/root/ejbca.passwords'
-    DB_BACKUPS = '/root/ejbcadb'
+    PASSWORDS_BACKUP_DIR = '/root/ejbca.passwords.old'
+    DB_BACKUPS = '/root/ejbcadb.old'
 
     JBOSS_CLI = 'bin/jboss-cli.sh'
 
@@ -434,7 +436,8 @@ class Ejbca(object):
         Backups the generated passwords to /root/ejbca.passwords
         :return:
         """
-        util.delete_file_backup(self.PASSWORDS_FILE, chmod=0o600)
+        util.make_or_verify_dir(self.PASSWORDS_BACKUP_DIR, mode=0o600)
+        util.delete_file_backup(self.PASSWORDS_FILE, chmod=0o600, backup_dir=self.PASSWORDS_BACKUP_DIR)
         with util.safe_open(self.PASSWORDS_FILE, chmod=0o600) as f:
             f.write('httpsserver.password=%s\n' % self.http_pass)
             f.write('java.trustpassword=%s\n' % self.java_pass)
