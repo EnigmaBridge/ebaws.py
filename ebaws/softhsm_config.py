@@ -17,20 +17,23 @@ class SoftHsmV1Config(object):
     Class for configuring SoftHSMv1 instance for EB
     """
     CONFIG_FILE = '/etc/softhsm.conf'
+    CONFIG_FILE_BACKUP_DIR = '/etc/softhsm.old'
     SOFTHSM_DB_DIR = '/var/lib/softhsm'
+    SOFTHSM_DB_BACKUP_DIR = '/var/lib/softhsm.old'
+
     DEFAULT_SLOT_CONFIG = {
             'slot': 0,
             'db': '/var/lib/softhsm/slot0.db',
-            "host": "site2.enigmabridge.com",
-            "port": 11110,
-            "enrollPort": 11112,
-            "apikey": "TEST_API",
-            "genRSA": True,
+            'host': 'site2.enigmabridge.com',
+            'port': 11110,
+            'enrollPort': 11112,
+            'apikey': 'TEST_API',
+            'genRSA': True,
 
-            "retry": {
-                "maxRetry": 4,
-                "jitterBase": 250,
-                "jitterRand": 50
+            'retry': {
+                'maxRetry': 4,
+                'jitterBase': 250,
+                'jitterRand': 50
             },
 
             'createTpl': {
@@ -87,13 +90,12 @@ class SoftHsmV1Config(object):
         :return:
         """
         cur_name = self.CONFIG_FILE
-        with open(cur_name, 'r') as f:
-            contents = f.read()
 
-            fhnd, fname = util.unique_file(cur_name, 0o644)
-            fhnd.write(contents)
-            fhnd.close()
-            return fname
+        if os.path.exists(cur_name):
+            util.make_or_verify_dir(self.CONFIG_FILE_BACKUP_DIR)
+            return util.file_backup(cur_name, chmod=None, backup_dir=self.CONFIG_FILE_BACKUP_DIR)
+
+        return None
 
     def configure(self, config=None):
         """
@@ -141,27 +143,42 @@ class SoftHsmV1Config(object):
         :return:
         """
         if os.path.exists(self.SOFTHSM_DB_DIR):
-            backup_slot_dir = util.safe_new_dir(self.SOFTHSM_DB_DIR, 0o755)
-            shutil.rmtree(backup_slot_dir)
-            shutil.move(self.SOFTHSM_DB_DIR, backup_slot_dir)
+            util.make_or_verify_dir(self.SOFTHSM_DB_BACKUP_DIR)
+            backup_slot_dir = util.dir_backup(self.SOFTHSM_DB_DIR, chmod=None, backup_dir=self.SOFTHSM_DB_BACKUP_DIR)
             return backup_slot_dir
+
         return None
 
-    def init_token(self):
+    def init_token(self, user=None):
         """
         Initializes a new SoftHSM token created by the configuration
+        :param user: user to initialize token under
         :return:
         """
-        try:
-            os.makedirs(self.SOFTHSM_DB_DIR, 0o755)
-        except OSError as exception:
-            if exception.errno != errno.EEXIST:
-                raise
+        util.make_or_verify_dir(self.SOFTHSM_DB_DIR, mode=0o755)
+        cmd = 'softhsm --init-token --slot 0 --pin 0000 --so-pin 0000 --label ejbca'
 
-        out, err = util.run_script('softhsm --init-token --slot 0 --pin 0000 --so-pin 0000 --label "ejbca"'.split(' '))
-        return out, err
+        if user is None:
+            out, err = util.run_script(cmd.split(' '))
+            return out, err
 
+        else:
+            util.chown(self.SOFTHSM_DB_DIR, user, user)
+            cmd_sudo = ['sudo', '-E', '-H', '-u', user, '/bin/bash', '-c', cmd]
+            return util.run_script(cmd_sudo)
 
+    def chown_tokens(self, user):
+        """
+        Changes the owner of the tokens
+        :param user:
+        :return:
+        """
+        if not os.path.exists(self.SOFTHSM_DB_DIR):
+            return
 
+        util.chown(self.SOFTHSM_DB_DIR, user, user)
+        tokens = os.listdir(self.SOFTHSM_DB_DIR)
+        for token in tokens:
+            util.chown(token, user, user)
 
 
