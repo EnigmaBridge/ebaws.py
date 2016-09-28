@@ -1,5 +1,6 @@
 from cmd2 import Cmd
 import argparse
+import sys
 from core import Core
 from registration import Registration
 from softhsm import SoftHsmV1Config
@@ -167,5 +168,9 @@ class App(Cmd):
         return True
 
 
-if __name__ == '__main__':
+def main():
     App().cmdloop()
+
+
+if __name__ == '__main__':
+    main()
