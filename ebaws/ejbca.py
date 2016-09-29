@@ -634,7 +634,7 @@ class Ejbca(object):
         self.update_properties()
         self.backup_passwords()
 
-        # restart jboss - to make sure it is running
+        # Restart jboss - to make sure it is running
         if self.print_output:
             print "\n - Restarting JBoss, please wait..."
         jboss_works = self.jboss_restart()
@@ -642,12 +642,12 @@ class Ejbca(object):
             print "\n JBoss could not be restarted. Please, resolve the problem and start again"
             return 100
 
-        # 2. Undeploy original EJBCA
+        # 2. Undeploy original EJBCA, make JBoss clean
         if self.print_output:
             print " - Cleaning JBoss environment (DB backup)"
         self.undeploy()
 
-        # restart jboss - so we can delete database after removal
+        # Restart jboss - so we can delete database after removal
         if self.print_output:
             print "\n - Restarting JBoss, please wait..."
         jboss_works = self.jboss_restart()
@@ -655,6 +655,7 @@ class Ejbca(object):
             print "\n JBoss could not be restarted. Please, resolve the problem and start again"
             return 100
 
+        # Delete & backup database, fix privileges, reload.
         self.jboss_backup_database()
         self.jboss_fix_privileges()
         self.jboss_reload()
