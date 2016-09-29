@@ -47,6 +47,7 @@ find /etc/softhsm.old -type f -exec shred -u {} \;
 find /root/ejbca.passwords -type f -exec shred -u {} \;
 find /root/ejbca.passwords.old -type f -exec shred -u {} \;
 find /root/ejbcadb.old -type f -exec shred -u {} \;
+/bin/rm /etc/softhsm.conf
 
 find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'web_0*.properties' -exec shred -u {} \;
 find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'install_0*.properties' -exec shred -u {} \;
