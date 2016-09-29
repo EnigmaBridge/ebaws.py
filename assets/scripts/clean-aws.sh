@@ -7,6 +7,7 @@ echo -n '' > /home/ec2-user/.bash_history
 /bin/rm -rf /home/ec2-user/.config/*
 /bin/rm -rf /home/ec2-user/.config/*
 /bin/rm -rf /home/ec2-user/.cache/pip
+/bin/rm -rf /home/ec2-user/ebaws.py
 
 # root
 /bin/rm /root/.jboss-cli-history
@@ -42,6 +43,8 @@ find /root/ejbcadb.old -type f -exec shred -u {} \;
 find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'web_0*.properties' -exec shred -u {} \;
 find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'install_0*.properties' -exec shred -u {} \;
 
+/bin/rm /opt/ejbca_ce_6_3_1_1/conf/web.properties
+/bin/rm /opt/ejbca_ce_6_3_1_1/conf/install.properties
 /bin/rm -rf /var/lib/softhsm
 /bin/rm -rf /var/lib/softhsm.*
 /bin/rm -rf /etc/enigma/*
@@ -50,6 +53,10 @@ find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'install_0*.properties' -exec shr
 /bin/rm -rf /root/ejbca*
 /bin/rm -rf /root/ejbca.passwords*
 /bin/rm -rf /root/ejbcadb.old
+/bin/rm /opt/jboss-eap-6.4.0/ejbcadb*
+/bin/rm /opt/jboss-eap-6.4.0/standalone/configuration/keystore/*
+/bin/rm /tmp/jboss-cli.log
+/bin/rm /tmp/ant-*.log
 
 #
 # Identity
