@@ -40,13 +40,18 @@ export AMI_ID=`ec2-metadata -a | cut -d ' ' -f 2`
 # 4. create image (as root)
 #   Creates disk image of the instance the command is started on (instance you want to create AMI from)
 #   Image requires quite a lot of free space.
+#   Size 8192 MB corresponds to the size of a new created volume with 8GiB
 #
 ec2-bundle-vol -k /tmp/cert/private-key.pem -c /tmp/cert/certificate.pem -u $AWS_ACC -r x86_64 \
-  -e /tmp/cert,/mnt/build -d /mnt/build --partition gpt
+  -e /tmp/cert,/mnt/build,/var/swap.1 -d /mnt/build --partition gpt --size 8192
 
 #
-# Reformat manifest
+# If you want only EBS-backed AMI you can skip to EBS-backed AMI description
+# You can even CTRL+C volume creation once image file is completed (skip encryption, manifest creation).
 #
+
+# For S3 you will probably need to change the manifest:
+# At first, reformat manifest
 sudo cp /mnt/build/image.manifest.xml /mnt/build/image.manifest.xml.bak
 sudo xmllint --format /mnt/build/image.manifest.xml.bak | sudo tee /mnt/build/image.manifest.xml
 
@@ -67,7 +72,6 @@ sudo xmllint --format /mnt/build/image.manifest.xml.bak | sudo tee /mnt/build/im
 
 #
 # 5. Upload to S3.
-#   If you want only EBS-backed AMI you can skip to EBS-backed AMI description
 #   S3 uploading requirements:
 #     a) create S3 bucket enigma-ami
 #     b) be sure the user you are going to use has a permissions to work with the bucket - S3, bucket, permissions.
@@ -98,23 +102,24 @@ aws ec2 register-image --image-location enigma-ami/ejbca/ejbcav1/image.manifest.
 
 #
 # Prepare an Amazon EBS volume for your new AMI.
-# Check out the size of the created image, but by default it went to 10GB
+# Check out the size of the created image, has to be at least that large
 #
-aws ec2 create-volume --size 10 --region $AMI_REGION --availability-zone ${AMI_REGION}a --volume-type gp2
+aws ec2 create-volume --size 8 --region $AMI_REGION --availability-zone ${AMI_REGION}a --volume-type gp2
 
 export VOLUME_ID=vol-xx1122
 
-# Attach
+# Attach the volume to the AMI
 aws ec2 attach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --device /dev/sdb --region $AMI_REGION
 
 # DD-bundle to the new volume
 #   We can skip ec2-download-bundle, ec2-unbundle as we have the unbundled image ready
+#   If desired, use kill -USR1 DDPID to monitor DDs progress
 sudo dd if=/mnt/build/image of=/dev/sdb bs=1M
 
-# Remove unwanted fstab entries
+# Remove unwanted fstab entries (e.g., file swaps)
 sudo partprobe /dev/sdb
 lsblk
-sudo mkdir /mnt/ebs
+sudo mkdir -p /mnt/ebs
 sudo mount /dev/sdb1 /mnt/ebs
 sudo vim /mnt/ebs/etc/fstab
 sudo umount /mnt/ebs
@@ -126,7 +131,7 @@ aws ec2 detach-volume --volume-id $VOLUME_ID --region $AMI_REGION
 aws ec2 create-snapshot --region $AMI_REGION --description "EnigmaBridge-EJBCA" --volume-id $VOLUME_ID
 export SNAPSHOT_ID=snap-xx112233
 
-# Verify snapshot
+# Verify snapshot - wait until the progress is 100%
 aws ec2 describe-snapshots --region $AMI_REGION --snapshot-id $SNAPSHOT_ID
 
 # Get Current AMI data - architecture, kernel id (if applicable), ramdisk id (if applicable)
@@ -139,7 +144,7 @@ aws ec2 register-image --region $AMI_REGION --name 'EnigmaBridge-EJBCA' \
   --virtualization-type hvm --architecture x86_64 \
   --root-device-name /dev/xvda
 
-# Delete the  EBS volume
+# Delete the EBS volume
 aws ec2 delete-volume --volume-id $VOLUME_ID
 
 
