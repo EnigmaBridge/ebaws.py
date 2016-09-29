@@ -76,6 +76,7 @@ sudo shred -u /root/.ssh/authorized_keys
 # sudo shred -u /etc/ssh/*_key /etc/ssh/*_key.pub
 # sudo shred /home/ec2-user/.ssh/authorized_keys
 
+updatedb
 shred -u ~/.*history
 history -c
 
