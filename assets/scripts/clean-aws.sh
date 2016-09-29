@@ -67,6 +67,9 @@ find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'install_0*.properties' -exec shr
 /bin/rm /tmp/jboss-cli.log
 /bin/rm /tmp/ant-*.log
 /bin/rm /opt/ejbca_ce_6_3_1_1/p12/*
+find /opt/jboss-eap-6.4.0/standalone/log/ -type f -exec shred -u {} \;
+find /opt/jboss-eap-6.4.0/standalone/configuration/standalone_xml_history/ -type f -exec shred -u {} \;
+/bin/rm -rf /opt/jboss-eap-6.4.0/standalone/configuration/standalone_xml_history/*
 
 #
 # Identity
