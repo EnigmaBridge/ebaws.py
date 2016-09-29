@@ -612,6 +612,16 @@ class Ejbca(object):
                 sys.stderr.write('.')
         return 0, None, None
 
+    def undeploy(self):
+        """
+        Undeploys EJBCA installation
+        :return:
+        """
+        self.jboss_undeploy()
+        self.jboss_remove_datasource()
+        self.jboss_rollback_ejbca()
+        self.jboss_reload()
+
     def configure(self):
         """
         Configures EJBCA for installation deployment
@@ -627,10 +637,7 @@ class Ejbca(object):
         # 2. Undeploy original EJBCA
         if self.print_output:
             print " - Cleaning JBoss environment (DB backup)"
-        self.jboss_undeploy()
-        self.jboss_remove_datasource()
-        self.jboss_rollback_ejbca()
-        self.jboss_reload()
+        self.undeploy()
 
         # restart jboss
         if self.print_output:

@@ -144,6 +144,30 @@ class App(Cmd):
             traceback.print_exc()
             print "Exception in the registration process"
 
+    def do_undeploy_ejbca(self, line):
+        """Undeploys EJBCA without any backup left"""
+        if not self.check_root():
+            return
+
+        print "Going to undeploy and remove EJBCA from the system"
+        print "WARNING! This is a destructive process!"
+        should_continue = self.ask_proceed()
+        if not should_continue:
+            return
+
+        print "WARNING! This is the last chance."
+        should_continue = self.ask_proceed()
+        if not should_continue:
+            return
+
+        ejbca = Ejbca(print_output=True)
+
+        print " - Undeploying EJBCA from JBoss"
+        ejbca.undeploy()
+        ejbca.jboss_restart()
+
+        print "\nDone."
+
     def ask_proceed(self, question=None):
         """Ask if user wants to proceed"""
         confirmation = None
