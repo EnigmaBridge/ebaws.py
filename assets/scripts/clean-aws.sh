@@ -54,6 +54,7 @@ find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'install_0*.properties' -exec shr
 
 /bin/rm /opt/ejbca_ce_6_3_1_1/conf/web.properties
 /bin/rm /opt/ejbca_ce_6_3_1_1/conf/install.properties
+/bin/rm -rf /var/softhsm
 /bin/rm -rf /var/lib/softhsm
 /bin/rm -rf /var/lib/softhsm.*
 /bin/rm -rf /etc/enigma/*
