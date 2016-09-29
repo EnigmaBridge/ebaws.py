@@ -13,6 +13,7 @@ install_requires = [
     'requests',
     'setuptools>=1.0',
     'sarge>=0.1.4',
+    'psutil',
     'six'
 ]
 

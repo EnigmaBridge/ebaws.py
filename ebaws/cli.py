@@ -2,10 +2,12 @@ from cmd2 import Cmd
 import argparse
 import sys
 import os
+import math
 from core import Core
 from registration import Registration
 from softhsm import SoftHsmV1Config
 from ejbca import Ejbca
+from ebsysconfig import SysConfig
 import traceback
 
 
@@ -64,6 +66,31 @@ class App(Cmd):
             reg_svc = Registration(email=email, eb_cfg=eb_cfg)
             soft_config = SoftHsmV1Config()
             ejbca = Ejbca(print_output=True)
+            syscfg = SysConfig()
+
+            # Determine if we have enough RAM for work
+            if not syscfg.is_enough_ram():
+                total_mem = syscfg.get_total_usable_mem()
+                print("\nTotal memory in the system is low: %d MB, installation requires at least 2GB"
+                      % int(math.ceil(total_mem/1024/1024)))
+
+                print("New swap file will be installed in /var")
+                should_continue = self.ask_proceed()
+                if not should_continue:
+                    return
+
+                code, swap_name, swap_size = syscfg.create_swap()
+                if code == 0:
+                    print("\nNew swap file was created %s %d MB and activated" % (swap_name,int(math.ceil(total_mem/1024/1024))))
+                else:
+                    print("\nSwap file could not be created. Please, inspect the problem and try again")
+                    return
+
+                # Recheck
+                if not syscfg.is_enough_ram():
+                    print("Error: still not enough memory. Please, resolve the issue and try again")
+                    return
+                print("")
 
             # New client registration.
             new_config = reg_svc.new_registration()
