@@ -117,12 +117,17 @@ aws ec2 attach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --device
 sudo dd if=/mnt/build/image of=/dev/sdb bs=1M
 
 # Remove unwanted fstab entries (e.g., file swaps)
+# Remove SSH keys
 sudo partprobe /dev/sdb
 lsblk
 sudo mkdir -p /mnt/ebs
 sudo mount /dev/sdb1 /mnt/ebs
 sudo vim /mnt/ebs/etc/fstab
+sudo find /mnt/ebs/etc/ssh/ -name '*key*' -exec shred -u -z {} \;
 sudo umount /mnt/ebs
+
+# Zeroize free space
+zerofree -v /dev/sdb1
 
 # Detach EBS
 aws ec2 detach-volume --volume-id $VOLUME_ID --region $AMI_REGION
