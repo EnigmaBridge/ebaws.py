@@ -373,7 +373,7 @@ class Ejbca(object):
         :return:
         """
         jboss_works = False
-        max_attempts = 20
+        max_attempts = 30
 
         for i in range(0, max_attempts):
             if i > 0:
@@ -438,7 +438,7 @@ class Ejbca(object):
         os.spawnlp(os.P_NOWAIT, "sudo", "bash", "bash", "-c",
                    "setsid /etc/init.d/jboss-eap-6.4.0 restart 2>/dev/null >/dev/null </dev/null &")
         time.sleep(10)
-        self.jboss_wait_after_start()
+        return self.jboss_wait_after_start()
 
     def backup_passwords(self):
         """
@@ -634,15 +634,27 @@ class Ejbca(object):
         self.update_properties()
         self.backup_passwords()
 
+        # restart jboss - to make sure it is running
+        if self.print_output:
+            print "\n - Restarting JBoss, please wait..."
+        jboss_works = self.jboss_restart()
+        if not jboss_works:
+            print "\n JBoss could not be restarted. Please, resolve the problem and start again"
+            return 100
+
         # 2. Undeploy original EJBCA
         if self.print_output:
             print " - Cleaning JBoss environment (DB backup)"
         self.undeploy()
 
-        # restart jboss
+        # restart jboss - so we can delete database after removal
         if self.print_output:
             print "\n - Restarting JBoss, please wait..."
-        self.jboss_restart()
+        jboss_works = self.jboss_restart()
+        if not jboss_works:
+            print "\n JBoss could not be restarted. Please, resolve the problem and start again"
+            return 100
+
         self.jboss_backup_database()
         self.jboss_fix_privileges()
         self.jboss_reload()
