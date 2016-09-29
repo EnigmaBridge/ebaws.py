@@ -141,7 +141,7 @@ zerofree -v /dev/sdb1
 # Detach EBS
 aws ec2 detach-volume --volume-id $VOLUME_ID --region $AMI_REGION
 
-# Create AMI
+# Create snapshot for the AMI
 aws ec2 create-snapshot --region $AMI_REGION --description "EnigmaBridge-EJBCA" --volume-id $VOLUME_ID
 export SNAPSHOT_ID=snap-xx112233
 
