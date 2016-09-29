@@ -644,7 +644,7 @@ class Ejbca(object):
 
         # 2. Undeploy original EJBCA, make JBoss clean
         if self.print_output:
-            print " - Cleaning JBoss environment (DB backup)"
+            print "\n - Cleaning JBoss environment (DB backup)"
         self.undeploy()
 
         # Restart jboss - so we can delete database after removal
