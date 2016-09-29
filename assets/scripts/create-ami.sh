@@ -41,9 +41,11 @@ export AMI_ID=`ec2-metadata -a | cut -d ' ' -f 2`
 #   Creates disk image of the instance the command is started on (instance you want to create AMI from)
 #   Image requires quite a lot of free space.
 #   Size 8192 MB corresponds to the size of a new created volume with 8GiB
+#   We have to use --no-filter because ec2-bundle-vol would exclude all pem files - we cannot do that (CA roots)
 #
 ec2-bundle-vol -k /tmp/cert/private-key.pem -c /tmp/cert/certificate.pem -u $AWS_ACC -r x86_64 \
-  -e /tmp/cert,/mnt/build,/var/swap.1 -d /mnt/build --partition gpt --size 8192
+  -e /tmp/cert,/mnt/build,/var/swap.1 \
+  -d /mnt/build --partition gpt --size 8192 --no-filter
 
 #
 # If you want only EBS-backed AMI you can skip to EBS-backed AMI description
@@ -123,7 +125,14 @@ lsblk
 sudo mkdir -p /mnt/ebs
 sudo mount /dev/sdb1 /mnt/ebs
 sudo vim /mnt/ebs/etc/fstab
+
+chroot /mnt/ebs/
+# run clean script, CTRL+D
+
 sudo find /mnt/ebs/etc/ssh/ -name '*key*' -exec shred -u -z {} \;
+sudo find /mnt/ebs/root/.*history /mnt/ebs/home/*/.*history -exec shred -u -z {} \;
+sudo find /mnt/ebs -name "authorized_keys" -exec shred -u -z {} \;
+
 sudo umount /mnt/ebs
 
 # Zeroize free space
