@@ -24,6 +24,14 @@ echo -n '' > /var/log/yum.log
 echo -n '' > /var/log/lastlog
 echo -n '' > /var/log/wtmp
 echo -n '' > /var/log/btmp
+echo -n '' > /var/log/dmesg
+echo -n '' > /var/log/dmesg.old
+echo -n '' > /var/log/cron
+echo -n '' > /var/log/cloud-init.log
+echo -n '' > /var/log/cloud-init-output.log
+echo -n '' > /var/log/dracut.log
+echo -n '' > /var/log/audit/audit.log
+/bin/rm /var/log/audit/audit.log.*
 
 sudo passwd -l root
 shred -u ~/.*history
@@ -57,6 +65,7 @@ find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'install_0*.properties' -exec shr
 /bin/rm /opt/jboss-eap-6.4.0/standalone/configuration/keystore/*
 /bin/rm /tmp/jboss-cli.log
 /bin/rm /tmp/ant-*.log
+/bin/rm /opt/ejbca_ce_6_3_1_1/p12/*
 
 #
 # Identity
