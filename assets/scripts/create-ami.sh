@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 ##
-## Creating S3 based AMI
+## Creating S3 based AMI, EBS based AMI (EBS is below)
 ##
 # http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/create-instance-store-ami.html
 # https://robpickering.com/2010/07/create-a-full-backup-image-of-your-amazon-ec2-instance-2-129
@@ -26,11 +26,22 @@
 #  -  - mkfs.ext4 /dev/xvdf1
 #  -  - mount /dev/xvdf1 /mnt/build
 #
+
+#
+# Export data
+#
+export AWS_ACC=112233445566
+export AWS_ACCESS_KEY_ID=your_access_key_id
+export AWS_SECRET_ACCESS_KEY=your_secret_access_key
+export AMI_REGION=eu-west-1
+export INSTANCE_ID=ec2-metadata -i | cut -d ' ' -f 2
+export AMI_ID=`ec2-metadata -a | cut -d ' ' -f 2`
+
 # 4. create image (as root)
 #   Creates disk image of the instance the command is started on (instance you want to create AMI from)
 #   Image requires quite a lot of free space.
 #
-ec2-bundle-vol -k /tmp/cert/private-key.pem -c /tmp/cert/certificate.pem -u 112233445566 -r x86_64 \
+ec2-bundle-vol -k /tmp/cert/private-key.pem -c /tmp/cert/certificate.pem -u $AWS_ACC -r x86_64 \
   -e /tmp/cert,/mnt/build -d /mnt/build --partition gpt
 
 #
@@ -56,12 +67,14 @@ sudo xmllint --format /mnt/build/image.manifest.xml.bak | sudo tee /mnt/build/im
 
 #
 # 5. Upload to S3.
-#   a)  create S3 bucket enigma-ami
-#   b)  be sure the user you are going to use has a permissions to work with the bucket - S3, bucket, permissions.
-#   c)  the user has in IAM S3 policy attached / S3FullAccess.
+#   If you want only EBS-backed AMI you can skip to EBS-backed AMI description
+#   S3 uploading requirements:
+#     a) create S3 bucket enigma-ami
+#     b) be sure the user you are going to use has a permissions to work with the bucket - S3, bucket, permissions.
+#     c) the user has in IAM S3 policy attached / S3FullAccess.
 #
 ec2-upload-bundle -b enigma-ami/ejbca/ejbcav1 -m /mnt/build/image.manifest.xml --region us-east-1 \
-  -a your_access_key_id -s your_secret_access_key
+  -a $AWS_ACCESS_KEY_ID -s $AWS_SECRET_ACCESS_KEY
 
 #
 # 6. Register AMI
@@ -75,8 +88,59 @@ aws ec2 register-image --image-location enigma-ami/ejbca/ejbcav1/image.manifest.
   --virtualization-type hvm --region us-east-1 \
   --description 'EnigmaBridge integrated EJBCA AMI'
 
+#
+# ----------------------------------------------------------------------------------------------------------------------
+#
 
+#
+# Conversion to EBS-backed AMI
+# http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_ConvertingS3toEBS.html
 
+#
+# Prepare an Amazon EBS volume for your new AMI.
+# Check out the size of the created image, but by default it went to 10GB
+#
+aws ec2 create-volume --size 10 --region $AMI_REGION --availability-zone ${AMI_REGION}a --volume-type gp2
+
+export VOLUME_ID=vol-xx1122
+
+# Attach
+aws ec2 attach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --device /dev/sdb --region $AMI_REGION
+
+# DD-bundle to the new volume
+#   We can skip ec2-download-bundle, ec2-unbundle as we have the unbundled image ready
+sudo dd if=/mnt/build/image of=/dev/sdb bs=1M
+
+# Remove unwanted fstab entries
+sudo partprobe /dev/sdb
+lsblk
+sudo mkdir /mnt/ebs
+sudo mount /dev/sdb1 /mnt/ebs
+sudo vim /mnt/ebs/etc/fstab
+sudo umount /mnt/ebs
+
+# Detach EBS
+aws ec2 detach-volume --volume-id $VOLUME_ID --region $AMI_REGION
+
+# Create AMI
+aws ec2 create-snapshot --region $AMI_REGION --description "EnigmaBridge-EJBCA" --volume-id $VOLUME_ID
+export SNAPSHOT_ID=snap-xx112233
+
+# Verify snapshot
+aws ec2 describe-snapshots --region $AMI_REGION --snapshot-id $SNAPSHOT_ID
+
+# Get Current AMI data - architecture, kernel id (if applicable), ramdisk id (if applicable)
+aws ec2 describe-images --region $AMI_REGION --image-id $AMI_ID --output text
+
+# Create new AMI
+aws ec2 register-image --region $AMI_REGION --name 'EnigmaBridge-EJBCA' \
+  --block-device-mappings DeviceName=/dev/xvda,Ebs={SnapshotId=${SNAPSHOT_ID}} \
+  --description 'EnigmaBridge integrated EJBCA AMI' \
+  --virtualization-type hvm --architecture x86_64 \
+  --root-device-name /dev/xvda
+
+# Delete the  EBS volume
+aws ec2 delete-volume --volume-id $VOLUME_ID
 
 
 
