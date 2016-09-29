@@ -150,7 +150,7 @@ aws ec2 register-image --region $AMI_REGION --name 'EnigmaBridge-EJBCA' \
   --root-device-name /dev/xvda
 
 # Delete the EBS volume
-aws ec2 delete-volume --volume-id $VOLUME_ID
+aws ec2 delete-volume --volume-id $VOLUME_ID --region $AMI_REGION
 
 
 
