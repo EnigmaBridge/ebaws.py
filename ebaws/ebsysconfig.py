@@ -90,8 +90,8 @@ class SysConfig(object):
         cmd = '/bin/rm "%s" && ' % fname
         cmd += ' dd if=/dev/zero of="%s" bs=1M count=%d >/dev/null && ' % (fname, size_in_mb)
         cmd += ' chmod 600 %s >/dev/null && ' % fname
-        cmd += ' mkswap %s && >/dev/null ' % fname
-        cmd += ' swapon %s && >/dev/null ' % fname
+        cmd += ' mkswap %s >/dev/null && ' % fname
+        cmd += ' swapon %s >/dev/null && ' % fname
         cmd += ' echo "%s swap swap defaults 0 0" >> /etc/fstab ' % fname
         cmd_exec = 'sudo -E -H /bin/bash -c \'%s\'' % cmd
 
