@@ -161,6 +161,15 @@ class Config(object):
     def generated_time(self, val):
         self.set_config('generated_time', val)
 
+    # Time the configuration was generated
+    @property
+    def domains(self):
+        return self.get_config('domains')
+
+    @domains.setter
+    def domains(self, val):
+        self.set_config('domains', val)
+
     # process endpoint
     @property
     def endpoint_process(self):

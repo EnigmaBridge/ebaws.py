@@ -7,10 +7,14 @@ import util
 import re
 import consts
 import OpenSSL
+import json
+import base64
 from datetime import datetime
 from ebclient.eb_configuration import *
 from ebclient.eb_registration import *
 from ebclient.registration import *
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
 
 
 __author__ = 'dusanklinec'
@@ -221,6 +225,88 @@ class Registration(object):
         self.config.generated_time = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
         return self.config
 
+    def new_domain(self):
+        """
+        Enrols for a new AWS domain
+        :return:
+        """
+        api_data_reg = {
+            'username': self.config.username,
+            'apikey': self.config.apikey,
+            'certificate': self.crt_pem
+        }
 
+        req = EnrolDomainRequest(api_data=api_data_reg, env=ENVIRONMENT_DEVELOPMENT, config=self.eb_config)
+        try:
+            resp = req.call()
+        except Exception as e:
+            print api_data_reg
+            print req.response
+            raise e
 
+        if resp is None:
+            raise InvalidResponse('Response is invalid')
+
+        if 'domain' not in resp:
+            raise InvalidResponse('Domain was not present in the response')
+
+        domains = resp['domain']
+        if not isinstance(domains, types.ListType):
+            domains =[domains]
+
+        # Step 3: save new identity configuration
+        self.config.domains = domains
+        return self.config.domains
+
+    def refresh_domain(self):
+        """
+        Attempts to refresh previously assigned domain after AWS restart
+        :return:
+        """
+        api_data_req = {
+            'ipv4': self.info_loader.ami_public_ip,
+            'username': self.config.username,
+            'apikey': self.config.apikey
+        }
+
+        req = GetDomainChallengeRequest(api_data=api_data_req, env=ENVIRONMENT_DEVELOPMENT, config=self.eb_config)
+        resp = req.call()
+
+        if 'authentication' not in resp:
+            raise InvalidResponse('Authentication not present in the response')
+
+        auth_type = resp['authentication']
+        if auth_type != 'signature':
+            raise InvalidResponse('Unsupported authentication type %s' % auth_type)
+
+        # Step 2 - claim the domain
+        challenge_response = resp['challenge']
+        api_data_req = {
+            'username': self.config.username,
+            'apikey': self.config.apikey,
+            'authentication': auth_type,
+            'response': challenge_response
+        }
+
+        payload = base64.urlsafe_b64encode(json.dumps(api_data_req))
+        signer = self.key_crypto.signer(padding=padding.PKCS1v15(), algorithm=hashes.SHA256())
+        signer.update(payload)
+        signature = signer.finalize()
+
+        signature_aux = {
+            'signature': {
+                'payload': payload,
+                'value': signature
+            },
+        }
+
+        req_upd = UpdateDomainRequest(env=ENVIRONMENT_DEVELOPMENT, config=self.eb_config)
+        req_upd.aux_data = signature_aux
+        resp_update = req_upd.call()
+
+        if 'domains' not in resp_update:
+            raise InvalidResponse('domains not in the response')
+
+        self.config.domains = resp_update['domains']
+        return self.config.domains
 
