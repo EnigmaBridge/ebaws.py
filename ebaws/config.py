@@ -161,7 +161,17 @@ class Config(object):
     def generated_time(self, val):
         self.set_config('generated_time', val)
 
-    # Time the configuration was generated
+    # NS domain
+    @property
+    def nsdomain(self):
+        return self.get_config('nsdomain')
+
+    @nsdomain.setter
+    def nsdomain(self, val):
+        self.set_config('nsdomain', val)
+
+
+    # DNS domains
     @property
     def domains(self):
         return self.get_config('domains')

@@ -233,7 +233,7 @@ class Registration(object):
         api_data_reg = {
             'username': self.config.username,
             'apikey': self.config.apikey,
-            'certificate': self.crt_pem
+            'certificate': self.get_cert_pem_json()
         }
 
         req = EnrolDomainRequest(api_data=api_data_reg, env=ENVIRONMENT_DEVELOPMENT, config=self.eb_config)
@@ -250,13 +250,9 @@ class Registration(object):
         if 'domain' not in resp:
             raise InvalidResponse('Domain was not present in the response')
 
-        domains = resp['domain']
-        if not isinstance(domains, types.ListType):
-            domains =[domains]
-
         # Step 3: save new identity configuration
-        self.config.domains = domains
-        return self.config.domains
+        self.config.nsdomain = resp['domain']
+        return self.config
 
     def refresh_domain(self):
         """
@@ -276,8 +272,8 @@ class Registration(object):
             raise InvalidResponse('Authentication not present in the response')
 
         auth_type = resp['authentication']
-        if auth_type != 'signature':
-            raise InvalidResponse('Unsupported authentication type %s' % auth_type)
+        if auth_type not in ['signature', 'challenge'] :
+            raise InvalidResponse('Unsupported authentication type ' + auth_type)
 
         # Step 2 - claim the domain
         challenge_response = resp['challenge']
@@ -288,10 +284,10 @@ class Registration(object):
             'response': challenge_response
         }
 
-        payload = base64.urlsafe_b64encode(json.dumps(api_data_req))
+        payload = base64.b64encode(json.dumps(api_data_req))
         signer = self.key_crypto.signer(padding=padding.PKCS1v15(), algorithm=hashes.SHA256())
         signer.update(payload)
-        signature = signer.finalize()
+        signature = base64.b64encode(signer.finalize())
 
         signature_aux = {
             'signature': {
@@ -300,13 +296,29 @@ class Registration(object):
             },
         }
 
-        req_upd = UpdateDomainRequest(env=ENVIRONMENT_DEVELOPMENT, config=self.eb_config)
+        req_upd = UpdateDomainRequest(api_data=api_data_req, env=ENVIRONMENT_DEVELOPMENT, config=self.eb_config)
         req_upd.aux_data = signature_aux
-        resp_update = req_upd.call()
+
+        try:
+            resp_update = req_upd.call()
+        except Exception as e:
+            # print signature_aux
+            # print req_upd.response
+            # print req_upd.request.body
+            raise e
 
         if 'domains' not in resp_update:
             raise InvalidResponse('domains not in the response')
 
         self.config.domains = resp_update['domains']
-        return self.config.domains
+        return self.config
+
+    def get_cert_pem_json(self):
+        result = ''
+        for line in self.crt_pem.split('\n'):
+            line = line.strip()
+            if line.startswith('---'):
+                continue
+            result += line
+        return result
 
