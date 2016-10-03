@@ -98,6 +98,37 @@ class App(Cmd):
 
             # New client registration.
             new_config = reg_svc.new_registration()
+
+            # Assign a new dynamic domain for the host
+            domain_is_ok = False
+            domain_ignore = False
+            domain_ctr = 0
+            while not domain_is_ok and domain_ctr < 3:
+                try:
+                    new_config = reg_svc.new_domain()
+                    new_config = reg_svc.refresh_domain()
+                    domain_is_ok = True
+                    print("\nNew domains registered for this host: ")
+                    for domain in new_config.domains:
+                        print("  %s" % domain)
+                    print("")
+
+                except Exception as e:
+                    domain_ctr += 1
+                    print("\nError during domain registration, no dynamic domain will be assigned")
+                    print("Do you want to try again?")
+                    should_continue = self.ask_proceed()
+                    if not should_continue:
+                        break
+
+            # Is it OK if domain assignment failed?
+            if not domain_is_ok:
+                if domain_ignore:
+                    print("\nDomain could not be assigned, installation continues. You can try domain reassign later")
+                else:
+                    print("\nDomain could not be assigned, installation aborted")
+                    return
+
             conf_file = Core.write_configuration(new_config)
             print("New configuration was written to: %s\n" % conf_file)
 
