@@ -75,6 +75,7 @@ class Ejbca(object):
         self.superadmin_pass = util.random_password(16)
 
         self.print_output = print_output
+        self.hostname = None
 
         self.ejbca_install_result = 1
         pass
@@ -116,6 +117,18 @@ class Ejbca(object):
         result = sorted(result)
         return '\n'.join(result)
 
+    def set_hostname(self, hostname):
+        """
+        Set hostname EJBCA will use - updates properties files in memory
+        :return:
+        """
+        if hostname is None:
+            hostname = 'localhost'
+
+        self.web_props['httpsserver.hostname'] = hostname
+        self.web_props['httpsserver.dn'] = 'CN=%s,O=EJBCA EnigmaBridge,C=GB' % hostname
+        return self.web_props
+
     def update_properties(self):
         """
         Updates properties files of the ejbca
@@ -124,8 +137,8 @@ class Ejbca(object):
         file_web = self.get_web_prop_file()
         file_ins = self.get_install_prop_file()
 
-        prop_web = EBUtils.merge(self.WEB_PROPERTIES, self.web_props)
-        prop_ins = EBUtils.merge(self.INSTALL_PROPERTIES, self.install_props)
+        prop_web = util.merge(self.WEB_PROPERTIES, self.web_props)
+        prop_ins = util.merge(self.INSTALL_PROPERTIES, self.install_props)
 
         prop_hdr = '#\n'
         prop_hdr += '# Config file generated: %s\n' % (datetime.now().strftime("%Y-%m-%d %H:%M"))

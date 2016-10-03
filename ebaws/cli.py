@@ -68,8 +68,11 @@ class App(Cmd):
             soft_config = SoftHsmV1Config()
             ejbca = Ejbca(print_output=True)
             syscfg = SysConfig()
+            hostname = None
 
-            # Determine if we have enough RAM for work
+            # Determine if we have enough RAM for the work.
+            # If not, a new swap file is created so the system has at least 2GB total memory space
+            # for compilation & deployment.
             if not syscfg.is_enough_ram():
                 total_mem = syscfg.get_total_usable_mem()
                 print("\nTotal memory in the system is low: %d MB, installation requires at least 2GB"
@@ -93,10 +96,12 @@ class App(Cmd):
                     return
                 print("")
 
-            # Creates a new RSA keypair identity
+            # Creates a new RSA key-pair identity
+            # Identity relates to bound DNS names and username.
+            # Requests for DNS manipulation need to be signed with the private key.
             reg_svc.new_identity(id_dir=CONFIG_DIR, backup_dir=CONFIG_DIR_OLD)
 
-            # New client registration.
+            # New client registration (new username, password, apikey).
             new_config = reg_svc.new_registration()
 
             # Assign a new dynamic domain for the host
@@ -107,11 +112,14 @@ class App(Cmd):
                 try:
                     new_config = reg_svc.new_domain()
                     new_config = reg_svc.refresh_domain()
-                    domain_is_ok = True
-                    print("\nNew domains registered for this host: ")
-                    for domain in new_config.domains:
-                        print("  %s" % domain)
-                    print("")
+
+                    if new_config.domains is not None and len(new_config.domains) > 0:
+                        domain_is_ok = True
+                        hostname = new_config.domains[0]
+                        print("\nNew domains registered for this host: ")
+                        for domain in new_config.domains:
+                            print("  %s" % domain)
+                        print("")
 
                 except Exception as e:
                     domain_ctr += 1
@@ -153,6 +161,7 @@ class App(Cmd):
             print("Going to install EJBCA")
             print("  This may take 5-15 minutes, please, do not interrupt the installation")
             print("  and wait until the process completes.\n")
+            ejbca.set_hostname(hostname)
             ejbca.configure()
             if ejbca.ejbca_install_result != 0:
                 print("\nEJBCA installation error, please, try again.")
@@ -200,6 +209,8 @@ class App(Cmd):
             print(" e.g.: scp %s:%s ." % (reg_svc.info_loader.ami_public_hostname, new_p12))
             print("Export password: %s" % ejbca.superadmin_pass)
             print("\nOnce you import p12 file to your browser you can connect to the admin interface at")
+            if hostname is not None:
+                print("https://%s:8443/ejbca/adminweb/" % hostname)
             print("https://%s:8443/ejbca/adminweb/" % reg_svc.info_loader.ami_public_hostname)
 
         except Exception as ex:

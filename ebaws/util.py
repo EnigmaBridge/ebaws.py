@@ -340,6 +340,32 @@ def random_password(length):
     return ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + "_") for _ in range(length))
 
 
+def merge(dst, src, path=None, abort_conflict=False):
+    """
+    Deep merges dictionary object b into a.
+    :param dst:
+    :param src:
+    :return:
+    """
+    if dst is None: return None
+    if src is None: return dst
+
+    if path is None: path = []
+    for key in src:
+        if key in dst:
+            if isinstance(dst[key], dict) and isinstance(src[key], dict):
+                merge(dst[key], src[key], path + [str(key)], abort_conflict)
+            elif dst[key] == src[key]:
+                pass # same leaf value
+            elif abort_conflict:
+                raise ValueError('Conflict at %s' % '.'.join(path + [str(key)]))
+            else:
+                dst[key] = src[key]
+        else:
+            dst[key] = src[key]
+    return dst
+
+
 def gen_ss_cert(key, domains, not_before=None,
                 validity=(7 * 24 * 60 * 60), force_san=True):
     """Generate new self-signed certificate.
