@@ -69,6 +69,7 @@ class Core(object):
         :return:
         """
         cfg = eb_configuration.Configuration()
+        cfg.endpoint_register = eb_configuration.Endpoint.url('https://hut6.enigmabridge.com:8445')
         return cfg
 
 
