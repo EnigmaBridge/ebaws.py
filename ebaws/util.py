@@ -17,6 +17,8 @@ import random
 import string
 import pwd
 import grp
+import OpenSSL
+import binascii
 
 
 logger = logging.getLogger(__name__)
@@ -332,4 +334,49 @@ def random_password(length):
     :return:
     """
     return ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + "_") for _ in range(length))
+
+
+def gen_ss_cert(key, domains, not_before=None,
+                validity=(7 * 24 * 60 * 60), force_san=True):
+    """Generate new self-signed certificate.
+
+    :type domains: `list` of `unicode`
+    :param OpenSSL.crypto.PKey key:
+    :param bool force_san:
+
+    If more than one domain is provided, all of the domains are put into
+    ``subjectAltName`` X.509 extension and first domain is set as the
+    subject CN. If only one domain is provided no ``subjectAltName``
+    extension is used, unless `force_san` is ``True``.
+
+    """
+    assert domains, "Must provide one or more hostnames for the cert."
+    cert = OpenSSL.crypto.X509()
+    cert.set_serial_number(int(binascii.hexlify(OpenSSL.rand.bytes(16)), 16))
+    cert.set_version(2)
+
+    extensions = [
+        OpenSSL.crypto.X509Extension(
+            b"basicConstraints", True, b"CA:TRUE, pathlen:0"),
+    ]
+
+    cert.get_subject().CN = domains[0]
+    # TODO: what to put into cert.get_subject()?
+    cert.set_issuer(cert.get_subject())
+
+    if force_san or len(domains) > 1:
+        extensions.append(OpenSSL.crypto.X509Extension(
+            b"subjectAltName",
+            critical=False,
+            value=b", ".join(b"DNS:" + d.encode() for d in domains)
+        ))
+
+    cert.add_extensions(extensions)
+
+    cert.gmtime_adj_notBefore(0 if not_before is None else not_before)
+    cert.gmtime_adj_notAfter(validity)
+
+    cert.set_pubkey(key)
+    cert.sign(key, "sha256")
+    return cert
 

@@ -3,6 +3,7 @@ import argparse
 import sys
 import os
 import math
+from consts import *
 from core import Core
 from registration import Registration
 from softhsm import SoftHsmV1Config
@@ -91,6 +92,9 @@ class App(Cmd):
                     print("Error: still not enough memory. Please, resolve the issue and try again")
                     return
                 print("")
+
+            # Creates a new RSA keypair identity
+            reg_svc.new_identity(id_dir=CONFIG_DIR, backup_dir=CONFIG_DIR_OLD)
 
             # New client registration.
             new_config = reg_svc.new_registration()

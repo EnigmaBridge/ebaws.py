@@ -6,6 +6,7 @@ import requests
 import util
 import re
 import consts
+import OpenSSL
 from datetime import datetime
 from ebclient.eb_configuration import *
 from ebclient.eb_registration import *
@@ -99,14 +100,44 @@ class Registration(object):
         self.email = None
         self.eb_config = None
         self.config = None
+        self.key = None
+        self.crt = None
+        self.key_path = None
+        self.crt_path = None
         self.info_loader = InfoLoader()
+        self.info_loader.load()
         pass
+
+    def new_identity(self, identities=None, id_dir=consts.CONFIG_DIR, backup_dir=consts.CONFIG_DIR_OLD):
+        """
+        New identity - key pair for domain claim
+        """
+        self.key_path = os.path.join(id_dir, consts.IDENTITY_KEY)
+        self.crt_path = os.path.join(id_dir, consts.IDENTITY_CRT)
+        util.delete_file_backup(self.key_path, 0o600, backup_dir=backup_dir)
+        util.delete_file_backup(self.crt_path, 0o600, backup_dir=backup_dir)
+
+        # Generate new private key, 2048bit
+        self.key = OpenSSL.crypto.PKey()
+        self.key.generate_key(OpenSSL.crypto.TYPE_RSA, 2048)
+        key_pem = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, self.key)
+
+        # Generate certificate
+        id_to_use = identities if identities is not None else [self.info_loader.ami_instance_id]
+        self.crt = util.gen_ss_cert(self.key, id_to_use, validity=(25 * 365 * 24 * 60 * 60))
+        crt_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, self.crt)
+
+        with util.safe_open(self.crt_path, 'wb', chmod=0o600) as crt_file:
+            crt_file.write(crt_pem)
+        with util.safe_open(self.key_path, 'wb', chmod=0o600) as key_file:
+            key_file.write(key_pem)
+
+        return self.key, self.crt, self.key_path, self.crt_path
 
     def new_registration(self):
         """
         Creates a new registration, returns new configuration object
         """
-        self.info_loader.load()
         if self.info_loader.ami_instance_id is None:
             raise EnvError('Could not extract AMI instance ID')
 
