@@ -19,6 +19,10 @@ import pwd
 import grp
 import OpenSSL
 import binascii
+from cryptography.hazmat.backends import default_backend
+from Crypto.PublicKey import RSA
+from cryptography.hazmat.primitives import serialization
+from cryptography.x509.base import load_pem_x509_certificate
 
 
 logger = logging.getLogger(__name__)
@@ -379,4 +383,21 @@ def gen_ss_cert(key, domains, not_before=None,
     cert.set_pubkey(key)
     cert.sign(key, "sha256")
     return cert
+
+
+def get_backend(backend=None):
+    return default_backend() if backend is None else backend
+
+
+def load_x509(data, backend=None):
+    backend = get_backend(backend)
+    return load_pem_x509_certificate(data, backend)
+
+
+def load_pem_private_key(data, password=None, backend=None):
+    return serialization.load_pem_private_key(data, None, get_backend(backend))
+
+
+def load_pem_private_key_pycrypto(data, password=None):
+    return RSA.importKey(data, passphrase=password)
 

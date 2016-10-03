@@ -104,6 +104,13 @@ class Registration(object):
         self.crt = None
         self.key_path = None
         self.crt_path = None
+
+        self.crt_pem = None
+        self.key_pem = None
+        self.key_py = None
+        self.key_crypto = None
+        self.crt_crypto = None
+
         self.info_loader = InfoLoader()
         self.info_loader.load()
         pass
@@ -120,19 +127,43 @@ class Registration(object):
         # Generate new private key, 2048bit
         self.key = OpenSSL.crypto.PKey()
         self.key.generate_key(OpenSSL.crypto.TYPE_RSA, 2048)
-        key_pem = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, self.key)
+        self.key_pem = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, self.key)
+        self.key_crypto = util.load_pem_private_key(self.key_pem)
+        self.key_py = util.load_pem_private_key_pycrypto(self.key_pem)
 
         # Generate certificate
         id_to_use = identities if identities is not None else [self.info_loader.ami_instance_id]
         self.crt = util.gen_ss_cert(self.key, id_to_use, validity=(25 * 365 * 24 * 60 * 60))
-        crt_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, self.crt)
+        self.crt_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, self.crt)
+        self.crt_crypto = util.load_x509(self.crt_pem)
 
         with util.safe_open(self.crt_path, 'wb', chmod=0o600) as crt_file:
-            crt_file.write(crt_pem)
+            crt_file.write(self.crt_pem)
         with util.safe_open(self.key_path, 'wb', chmod=0o600) as key_file:
-            key_file.write(key_pem)
+            key_file.write(self.key_pem)
 
         return self.key, self.crt, self.key_path, self.crt_path
+
+    def load_identity(self, id_dir=consts.CONFIG_DIR):
+        """
+        Loads identity from the directory
+        """
+        self.key_path = os.path.join(id_dir, consts.IDENTITY_KEY)
+        self.crt_path = os.path.join(id_dir, consts.IDENTITY_CRT)
+
+        if not os.path.exists(self.key_path):
+            return None
+
+        with util.safe_open(self.key_path, 'rb', chmod=0o600) as key:
+            self.key_pem = key.read()
+            self.key = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, self.key_pem)
+            self.key_crypto = util.load_pem_private_key(self.key_pem)
+            self.key_py = util.load_pem_private_key_pycrypto(self.key_pem)
+
+        with util.safe_open(self.crt_path, 'rb', chmod=0o600) as crt:
+            self.crt_pem = crt.read()
+            self.crt = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, self.crt_pem)
+            self.crt_crypto = util.load_x509(self.crt_pem)
 
     def new_registration(self):
         """
