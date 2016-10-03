@@ -4,7 +4,7 @@ This CLI installs a new EJBCA on EC2 instance. Specific AMI is required - with J
 
 ## Troubleshooting
 Error in installation of dependencies (cryptography, pyOpenSSL):
-`sorry, but this version only supports 100 named groups` [100-named-groups]
+`sorry, but this version only supports 100 named groups` \[[100-named-groups]\]
 
 Solution:
 Install downgraded version of pycparser and pyOpenSSL:
