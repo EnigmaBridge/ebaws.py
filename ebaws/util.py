@@ -23,19 +23,22 @@ from cryptography.hazmat.backends import default_backend
 from Crypto.PublicKey import RSA
 from cryptography.hazmat.primitives import serialization
 from cryptography.x509.base import load_pem_x509_certificate
-
+from sarge import run, Capture, Feeder
+from datetime import datetime
+import time
+import types
 
 logger = logging.getLogger(__name__)
 
 
-def run_script(params):
+def run_script(params, shell=False):
     """Run the script with the given params.
 
     :param list params: List of parameters to pass to Popen
 
     """
     try:
-        proc = subprocess.Popen(params,
+        proc = subprocess.Popen(params, shell=shell,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
 
@@ -426,4 +429,103 @@ def load_pem_private_key(data, password=None, backend=None):
 
 def load_pem_private_key_pycrypto(data, password=None):
     return RSA.importKey(data, passphrase=password)
+
+
+def cli_cmd_sync(cmd, log_obj=None, write_dots=False, on_out=None, on_err=None, cwd=None):
+    """
+    Runs command line task synchronously
+    :return:
+    """
+    feeder = Feeder()
+    p = run(cmd,
+            input=feeder, async=True,
+            stdout=Capture(buffer_size=1),
+            stderr=Capture(buffer_size=1),
+            cwd=cwd)
+
+    out_acc = []
+    err_acc = []
+    ret_code = 1
+    log = None
+    close_log = False
+
+    # Logging - either filename or logger itself
+    if log_obj is not None:
+        if isinstance(log_obj, types.StringTypes):
+            delete_file_backup(log_obj, chmod=0o600)
+            log = safe_open(log_obj, mode='w', chmod=0o600)
+            close_log = True
+        else:
+            log = log_obj
+
+    try:
+        while len(p.commands) == 0:
+            time.sleep(0.15)
+
+        while p.commands[0].returncode is None:
+            out = p.stdout.readline()
+            err = p.stderr.readline()
+
+            # If output - react on input challenges
+            if out is not None and len(out) > 0:
+                out_acc.append(out)
+
+                if log is not None:
+                    log.write(out)
+                    log.flush()
+
+                if write_dots:
+                    sys.stderr.write('.')
+
+                if on_out is not None:
+                    on_out(out, feeder)
+
+            # Collect error
+            if err is not None and len(err)>0:
+                err_acc.append(err)
+
+                if log is not None:
+                    log.write(err)
+                    log.flush()
+
+                if write_dots:
+                    sys.stderr.write('.')
+
+                if on_err is not None:
+                    on_err(err, feeder)
+
+            p.commands[0].poll()
+            time.sleep(0.01)
+
+        ret_code = p.commands[0].returncode
+
+        # Collect output to accumulator
+        rest_out = p.stdout.readlines()
+        if rest_out is not None and len(rest_out) > 0:
+            for out in rest_out:
+                out_acc.append(out)
+                if log is not None:
+                    log.write(out)
+                    log.flush()
+                if on_out is not None:
+                    on_out(out, feeder)
+
+        # Collect error to accumulator
+        rest_err = p.stderr.readlines()
+        if rest_err is not None and len(rest_err) > 0:
+            for err in rest_err:
+                err_acc.append(err)
+                if log is not None:
+                    log.write(err)
+                    log.flush()
+                if on_err is not None:
+                    on_err(err, feeder)
+
+        return ret_code, out_acc, err_acc
+
+    finally:
+        feeder.close()
+        if close_log:
+            log.close()
+
 

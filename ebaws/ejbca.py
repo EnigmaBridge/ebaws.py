@@ -164,104 +164,12 @@ class Ejbca(object):
         Used for ant and jboss-cli.sh
         :return:
         """
-        feeder = Feeder()
         default_cwd = self.get_ejbca_home()
-        p = run(cmd,
-                input=feeder, async=True,
-                stdout=Capture(buffer_size=1),
-                stderr=Capture(buffer_size=1),
-                cwd=cwd if cwd is not None else default_cwd)
+        if on_out is None and ant_answer is not None:
+            on_out = self.ant_answer
+        cwd = cwd if cwd is not None else default_cwd
 
-        out_acc = []
-        err_acc = []
-        ret_code = 1
-        log = None
-        close_log = False
-
-        # Logging - either filename or logger itself
-        if log_obj is not None:
-            if isinstance(log_obj, types.StringTypes):
-                util.delete_file_backup(log_obj, chmod=0o600)
-                log = util.safe_open(log_obj, mode='w', chmod=0o600)
-                close_log = True
-            else:
-                log = log_obj
-
-        try:
-            while len(p.commands) == 0:
-                time.sleep(0.15)
-
-            while p.commands[0].returncode is None:
-                out = p.stdout.readline()
-                err = p.stderr.readline()
-
-                # If output - react on input challenges
-                if out is not None and len(out) > 0:
-                    out_acc.append(out)
-
-                    if log is not None:
-                        log.write(out)
-                        log.flush()
-
-                    if write_dots:
-                        sys.stderr.write('.')
-
-                    if on_out is not None:
-                        on_out(out, feeder)
-                    elif ant_answer:
-                        if out.strip().startswith('Please enter'):            # default - use default value, no starving
-                            feeder.feed('\n')
-                        elif out.strip().startswith('[input] Please enter'):  # default - use default value, no starving
-                            feeder.feed('\n')
-
-                # Collect error
-                if err is not None and len(err)>0:
-                    err_acc.append(err)
-
-                    if log is not None:
-                        log.write(err)
-                        log.flush()
-
-                    if write_dots:
-                        sys.stderr.write('.')
-
-                    if on_err is not None:
-                        on_err(err, feeder)
-
-                p.commands[0].poll()
-                time.sleep(0.01)
-
-            ret_code = p.commands[0].returncode
-
-            # Collect output to accumulator
-            rest_out = p.stdout.readlines()
-            if rest_out is not None and len(rest_out) > 0:
-                for out in rest_out:
-                    out_acc.append(out)
-                    if log is not None:
-                        log.write(out)
-                        log.flush()
-                    if on_out is not None:
-                        on_out(out, feeder)
-
-            # Collect error to accumulator
-            rest_err = p.stderr.readlines()
-            if rest_err is not None and len(rest_err) > 0:
-                for err in rest_err:
-                    err_acc.append(err)
-                    if log is not None:
-                        log.write(err)
-                        log.flush()
-                    if on_err is not None:
-                        on_err(err, feeder)
-
-            return ret_code, out_acc, err_acc
-
-        finally:
-            feeder.close()
-            if close_log:
-                log.close()
-        pass
+        return util.cli_cmd_sync(cmd, log_obj=log_obj, write_dots=write_dots, on_out=on_out, on_err=on_err, cwd=cwd)
 
     def ant_cmd(self, cmd, log_obj=None, write_dots=False, on_out=None, on_err=None):
         ret, out, err = self.cli_cmd('sudo -E -H -u %s ant %s' % (self.JBOSS_USER, cmd),
@@ -280,6 +188,13 @@ class Ejbca(object):
 
     def ant_deployear(self):
         return self.ant_cmd('deployear', log_obj='/tmp/ant-deployear.log', write_dots=self.print_output)
+
+    def ant_answer(self, out, feeder):
+        out = out.strip()
+        if out.startswith('Please enter'):            # default - use default value, no starving
+            feeder.feed('\n')
+        elif out.startswith('[input] Please enter'):  # default - use default value, no starving
+            feeder.feed('\n')
 
     def ant_install_answer(self, out, feeder):
         out = out.strip()
