@@ -32,6 +32,7 @@ echo -n '' > /var/log/cloud-init-output.log
 echo -n '' > /var/log/dracut.log
 echo -n '' > /var/log/audit/audit.log
 /bin/rm /var/log/audit/audit.log.*
+/bin/rm -rf /var/log/letsencrypt
 
 sudo passwd -l root
 shred -u ~/.*history
@@ -57,6 +58,7 @@ find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'install_0*.properties' -exec shr
 /bin/rm -rf /var/softhsm
 /bin/rm -rf /var/lib/softhsm
 /bin/rm -rf /var/lib/softhsm.*
+/bin/rm -rf /etc/letsencrypt
 /bin/rm -rf /etc/enigma/*
 /bin/rm -rf /etc/enigma.old
 /bin/rm -rf /etc/softhsm.old
@@ -67,6 +69,10 @@ find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'install_0*.properties' -exec shr
 /bin/rm /opt/jboss-eap-6.4.0/standalone/configuration/keystore/*
 /bin/rm /tmp/jboss-cli.log
 /bin/rm /tmp/ant-*.log
+/bin/rm /tmp/tmpcert.p12
+/bin/rm /tmp/certbot.log
+/bin/rm /tmp/openssl.log
+/bin/rm /tmp/keytool.log
 /bin/rm /opt/ejbca_ce_6_3_1_1/p12/*
 find /opt/jboss-eap-6.4.0/standalone/log/ -type f -exec shred -u {} \;
 find /opt/jboss-eap-6.4.0/standalone/configuration/standalone_xml_history/ -type f -exec shred -u {} \;
