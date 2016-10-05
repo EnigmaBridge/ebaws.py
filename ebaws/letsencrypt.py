@@ -34,6 +34,10 @@ class LetsEncryptToJks(object):
         self.keytool_path = keytool_path
         self.print_output = print_output
 
+        self.priv_file = None
+        self.cert_file = None
+        self.ca_file = None
+
     def get_keytool(self):
         return 'keytool' if self.keytool_path is None else self.keytool_path
 
@@ -65,21 +69,32 @@ class LetsEncryptToJks(object):
             return 6
         return 0
 
-    def convert(self):
-        priv_file = os.path.join(self.cert_dir, self.PRIVATE_KEY)
-        cert_file = os.path.join(self.cert_dir, self.CERT)
-        ca_file = os.path.join(self.cert_dir, self.CA)
+    def check_files(self):
+        self.priv_file = os.path.join(self.cert_dir, self.PRIVATE_KEY)
+        self.cert_file = os.path.join(self.cert_dir, self.CERT)
+        self.ca_file = os.path.join(self.cert_dir, self.CA)
 
-        if not os.path.exists(priv_file):
-            self.print_error('Error, private key not found at %s\n' % priv_file)
+        if not os.path.exists(self.priv_file):
             return 1
 
-        if not os.path.exists(cert_file):
-            self.print_error('Error, cert not found at %s\n' % cert_file)
+        if not os.path.exists(self.cert_file):
             return 2
 
-        if not os.path.exists(ca_file):
-            self.print_error('Error, fullchain file not found at %s\n' % ca_file)
+        if not os.path.exists(self.ca_file):
+            return 3
+
+        return 0
+
+    def convert(self):
+        file_check = self.check_files()
+        if file_check == 1:
+            self.print_error('Error, private key not found at %s\n' % self.priv_file)
+            return 1
+        elif file_check == 2:
+            self.print_error('Error, cert not found at %s\n' % self.cert_file)
+            return 2
+        elif file_check == 3:
+            self.print_error('Error, fullchain file not found at %s\n' % self.ca_file)
             return 3
 
         keytool = self.get_keytool()
@@ -102,7 +117,7 @@ class LetsEncryptToJks(object):
                   ' -inkey "%s" ' \
                   ' -in "%s" ' \
                   ' -certfile "%s" ' \
-                  ' -name "%s" ' % (openssl, p12_name, self.password, priv_file, cert_file, ca_file, self.jks_alias)
+                  ' -name "%s" ' % (openssl, p12_name, self.password, self.priv_file, self.cert_file, self.ca_file, self.jks_alias)
 
             log_obj = self.OPENSSL_LOG
             ret, out, err = util.cli_cmd_sync(cmd, log_obj=log_obj, write_dots=self.print_output)
