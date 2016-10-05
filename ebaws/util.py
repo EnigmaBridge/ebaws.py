@@ -626,7 +626,7 @@ def _get_systemd_os_release_var(varname, filepath="/etc/os-release"):
 def _normalize_string(orig):
     """
     Helper function for _get_systemd_os_release_var() to remove quotes
-    and whitespaces
+    and whitespaces around the string (strip/trim)
     """
     return orig.replace('"', '').replace("'", "").strip()
 
