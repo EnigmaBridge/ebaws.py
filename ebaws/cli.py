@@ -34,6 +34,9 @@ class App(Cmd):
         """
         Cmd.__init__(self, *args, **kwargs)
         self.core = Core()
+        self.args = None
+
+        self.noninteractive = False
 
     def do_dump_config(self, line):
         """Dumps the current configuration to the terminal"""
@@ -240,7 +243,7 @@ class App(Cmd):
             traceback.print_exc()
             print "Exception in the registration process"
 
-    def do_renew(self, line):
+    def do_renew(self, arg):
         """Renews LetsEncrypt certificates used for the JBoss"""
         if not self.check_root() or not self.check_pid():
             return
@@ -276,7 +279,7 @@ class App(Cmd):
         else:
             # Renew the certs
             self.le_renew(ejbca)
-            pass
+        pass
 
     def do_undeploy_ejbca(self, line):
         """Undeploys EJBCA without any backup left"""
@@ -392,17 +395,30 @@ class App(Cmd):
 
     def app_main(self):
         # Backup original arguments for later parsing
-        args = sys.argv
+        args_src = sys.argv
+
+        # Parse our argument list
+        parser = argparse.ArgumentParser(description='EnigmaBridge AWS client')
+        parser.add_argument('-n, --non-interactive', dest='noninteractive', action='store_const', const=True,
+                            help='non-interactive mode of operation, command line only')
+
+        parser.add_argument('commands', nargs=argparse.ZERO_OR_MORE, default=[],
+                            help='commands to process')
+
+        self.args = parser.parse_args(args=args_src[1:])
+        self.noninteractive = self.args.noninteractive
 
         # Fixing cmd2 arg parsing, call cmdLoop
-        sys.argv = []
-        for arg in args:
-            if arg.startswith('-'):
-                break
-            sys.argv.append(arg)
+        sys.argv = [args_src[0]]
+        for cmd in self.args.commands:
+            sys.argv.append(cmd)
+
+        # Terminate after execution is over on the non-interactive mode
+        if self.noninteractive:
+            sys.argv.append('quit')
 
         self.cmdloop()
-        sys.argv = args
+        sys.argv = args_src
 
 
 def main():

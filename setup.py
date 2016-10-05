@@ -8,7 +8,7 @@ version = '0.0.5'
 # Please update tox.ini when modifying dependency version requirements
 install_requires = [
     'ebclient.py>=0.1.9',
-    'cmd2',
+    'cmd2>=0.6.9',
     'pycrypto>=2.6',
     'cryptography>=0.7',   # load_pem_x509_certificate
     'parsedatetime>=1.3',  # Calendar.parseDT
