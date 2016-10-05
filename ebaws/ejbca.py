@@ -73,22 +73,22 @@ class Ejbca(object):
         #'superadmin.password': 'ejbca',
     }
 
-    def __init__(self, install_props=None, web_props=None, print_output=False, eb_config=None, *args, **kwargs):
+    def __init__(self, install_props=None, web_props=None, print_output=False, eb_config=None, jks_pass=None, config=None, hostname=None, *args, **kwargs):
         self.install_props = install_props if install_props is not None else {}
         self.web_props = web_props if web_props is not None else {}
 
-        self.http_pass = util.random_password(16)
+        self.http_pass = jks_pass if jks_pass is not None else util.random_password(16)
         self.java_pass = 'changeit' # EJBCA & JBoss bug here
         self.superadmin_pass = util.random_password(16)
 
         self.print_output = print_output
-        self.hostname = None
+        self.hostname = hostname
 
         self.lets_encrypt = None
         self.lets_encrypt_jks = None
 
         self.eb_config = eb_config
-        self.config = None
+        self.config = config
 
         self.ejbca_install_result = 1
         pass
