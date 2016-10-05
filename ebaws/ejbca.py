@@ -565,6 +565,11 @@ class Ejbca(object):
         Enrolls to LetsEncrypt with specified domains
         :return:
         """
+
+        # Password need to be stored anyway for future renewal / regeneration
+        self.config.ejbca_jks_password = self.http_pass
+
+        # If hostname is none/localhost, there is no point for lets encrypt here. Maybe later.
         if self.hostname is None or self.hostname == 'localhost':
             logger.info("Hostname is none/localhost, no letsencrypt operation will be performed")
             return 1
@@ -593,7 +598,6 @@ class Ejbca(object):
             return 3
 
         self.config.ejbca_hostname = self.hostname
-        self.config.ejbca_jks_password = self.http_pass
         return 0
 
     def undeploy(self):
@@ -617,6 +621,8 @@ class Ejbca(object):
             print " - Updating settings"
         self.update_properties()
         self.backup_passwords()
+        if self.config is not None:
+            self.config.ejbca_jks_password = self.http_pass
 
         # Restart jboss - to make sure it is running
         if self.print_output:
