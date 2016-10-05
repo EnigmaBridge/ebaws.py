@@ -141,6 +141,7 @@ class Ejbca(object):
         if hostname is None:
             hostname = 'localhost'
 
+        self.hostname = hostname
         self.web_props['httpsserver.hostname'] = hostname
         self.web_props['httpsserver.dn'] = 'CN=%s,O=EJBCA EnigmaBridge,C=GB' % hostname
         return self.web_props
