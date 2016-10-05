@@ -3,13 +3,15 @@ import argparse
 import sys
 import os
 import math
+import types
+import traceback
 from consts import *
 from core import Core
 from registration import Registration
 from softhsm import SoftHsmV1Config
 from ejbca import Ejbca
 from ebsysconfig import SysConfig
-import traceback
+from letsencrypt import LetsEncrypt
 
 
 class App(Cmd):
@@ -209,16 +211,7 @@ class App(Cmd):
                 print('\nEnigmaBridgeToken added to EJBCA')
 
             # LetsEncrypt enrollment
-            print('\nInstalling LetsEncrypt certificate for: %s' % hostname)
-            ret = ejbca.le_enroll()
-            if ret == 0:
-                Core.write_configuration(ejbca.config)
-                ejbca.jboss_reload()
-                print('\nLetsEncrypt certificate installed')
-
-            else:
-                print('\nFailed to install LetsEncrypt certificate, code=%s.' % ret)
-                print('You can try it again later with command renew\n')
+            self.le_install(ejbca)
 
             # Finalize, P12 file & final instructions
             new_p12 = ejbca.copy_p12_file()
@@ -233,6 +226,44 @@ class App(Cmd):
         except Exception as ex:
             traceback.print_exc()
             print "Exception in the registration process"
+
+    def do_renew(self, line):
+        """Renews LetsEncrypt certificates used for the JBoss"""
+        if not self.check_root():
+            return
+
+        config = Core.read_configuration()
+        if config is None or not config.has_nonempty_config():
+            print "\nError! Enigma config file not found %s" % (Core.get_config_file_path())
+            print " Cannot continue. Have you run init already?\n"
+            return
+
+        domains = config.domains
+        if domains is None or not isinstance(domains, types.ListType) or len(domains) == 0:
+            print "\nError! No domains found in the configuration."
+            print " Cannot continue. Did init complete successfully?"
+            return
+
+        # If there is no hostname, enrollment probably failed.
+        ejbca_host = config.ejbca_hostname
+        ejbca = Ejbca(print_output=True, jks_pass=config.ejbca_jks_password, config=config, hostname=ejbca_host)
+
+        le_test = LetsEncrypt()
+        enroll_new_cert = ejbca_host is None or len(ejbca_host) == 0 or ejbca_host == 'localhost'
+
+        if not enroll_new_cert:
+            enroll_new_cert = le_test.is_certificate_ready(domain=ejbca_host) != 0
+        else:
+            ejbca_host = domains[0]
+            ejbca.hostname = ejbca_host
+
+        if enroll_new_cert:
+            # Enroll a new certificate
+            self.le_install(ejbca)
+        else:
+            # Renew the certs
+            self.le_renew(ejbca)
+            pass
 
     def do_undeploy_ejbca(self, line):
         """Undeploys EJBCA without any backup left"""
@@ -257,6 +288,35 @@ class App(Cmd):
         ejbca.jboss_restart()
 
         print "\nDone."
+
+    def le_install(self, ejbca):
+        print('\nInstalling LetsEncrypt certificate for: %s' % ejbca.hostname)
+        ret = ejbca.le_enroll()
+        if ret == 0:
+            Core.write_configuration(ejbca.config)
+            ejbca.jboss_reload()
+            print('\nLetsEncrypt certificate installed')
+
+        else:
+            print('\nFailed to install LetsEncrypt certificate, code=%s.' % ret)
+            print('You can try it again later with command renew\n')
+        return ret
+
+    def le_renew(self, ejbca):
+        print('\nRenewing LetsEncrypt certificate for: %s' % ejbca.hostname)
+        ret = ejbca.le_renew()
+        if ret == 0:
+            Core.write_configuration(ejbca.config)
+            ejbca.jboss_reload()
+            print('\nNew LetsEncrypt certificate installed')
+
+        elif ret == 1:
+            print('\nRenewal not needed, certificate did not change')
+
+        else:
+            print('\nFailed to renew LetsEncrypt certificate, code=%s.' % ret)
+            print('You can try it again later with command renew\n')
+        return ret
 
     def ask_proceed(self, question=None):
         """Ask if user wants to proceed"""

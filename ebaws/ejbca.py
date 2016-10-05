@@ -600,6 +600,47 @@ class Ejbca(object):
         self.config.ejbca_hostname = self.hostname
         return 0
 
+    def le_renew(self):
+        """
+        Renews LetsEncrypt certificate
+        :return: 0 if certificate was renewed and JKS recreated, 1 if OK but no renewal was needed, error otherwise
+        """
+        self.lets_encrypt = letsencrypt.LetsEncrypt(email=self.config.email, domains=self.hostname, print_output=self.print_output)
+        if self.lets_encrypt.is_certificate_ready(domain=self.hostname) != 0:
+            return 2
+
+        priv_file, cert_file, ca_file = self.lets_encrypt.get_cert_paths(domain=self.hostname)
+        cert_time_before = util.get_file_mtime(cert_file)
+
+        # Call letsencrypt renewal
+        ret, out, err = self.lets_encrypt.renew()
+        if ret != 0:
+            return 3
+
+        cert_time_after = util.get_file_mtime(cert_file)
+        if cert_time_before >= cert_time_after:
+            return 1
+
+        # LetsEncrypt certificate is OK. Create JKS.
+        jks_path = self.get_keystore_path()
+        util.delete_file_backup(jks_path, chmod=0o600, backup_dir=self.DB_BACKUPS)
+
+        # Create new JKS
+        cert_dir = self.lets_encrypt.get_certificate_dir(self.hostname)
+        self.lets_encrypt_jks = letsencrypt.LetsEncryptToJks(
+            cert_dir=cert_dir,
+            jks_path=jks_path,
+            jks_alias=self.hostname,
+            password=self.http_pass,
+            print_output=self.print_output)
+
+        ret = self.lets_encrypt_jks.convert()
+        if ret != 0:
+            return 4
+
+        self.config.ejbca_hostname = self.hostname
+        return 0
+
     def undeploy(self):
         """
         Undeploys EJBCA installation

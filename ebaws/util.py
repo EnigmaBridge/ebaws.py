@@ -529,3 +529,7 @@ def cli_cmd_sync(cmd, log_obj=None, write_dots=False, on_out=None, on_err=None, 
             log.close()
 
 
+def get_file_mtime(file):
+    return os.path.getmtime(file)
+
+
