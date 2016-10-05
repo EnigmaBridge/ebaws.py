@@ -7,6 +7,7 @@ import types
 import traceback
 import pid
 import time
+import util
 from consts import *
 from core import Core
 from registration import Registration
@@ -348,6 +349,9 @@ class App(Cmd):
             question = None
             if len(var) == 0:
                 question = "You have entered an empty email address, is it correct? (Y/n):"
+            elif not util.safe_email(var):
+                print('Email you have entered is invalid, try again')
+                continue
             else:
                 question = "Is this email correct? \"%s\" (Y/n):" % var
             confirmation = self.ask_proceed(question)
@@ -373,7 +377,7 @@ class App(Cmd):
                 attempt_ctr += 1
                 self.core.pidlock_create()
                 if attempt_ctr > 1:
-                    print("PID lock acquired")
+                    print("\nPID lock acquired")
                 return True
 
             except pid.PidFileAlreadyRunningError as e:
