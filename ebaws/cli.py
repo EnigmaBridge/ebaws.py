@@ -155,6 +155,11 @@ class App(Cmd):
                     print("\nDomain could not be assigned, installation aborted")
                     return
 
+            # Install to the OS
+            syscfg.install_onboot_check()
+            syscfg.install_cron_renew()
+
+            # Dump config & SoftHSM
             conf_file = Core.write_configuration(new_config)
             print("New configuration was written to: %s\n" % conf_file)
 

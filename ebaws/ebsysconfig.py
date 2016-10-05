@@ -100,5 +100,24 @@ class SysConfig(object):
         p.communicate()
         return p.returncode, fname, desired_size
 
+    def install_cron_renew(self):
+        """
+        Installs cronjob for certificate renewal
+        :return:
+        """
+        cron_path = '/etc/cron.d/ebaws-renew'
+        if os.path.exists(cron_path):
+            os.remove(cron_path)
 
+        with util.safe_open(cron_path) as handle:
+            handle.write('# Daily certificate renewal for Enigma installation (EJBCA Lets Encrypt)\n')
+            handle.write('3 3 * * * root /usr/bin/ebaws -n renew\n')
+
+    def install_onboot_check(self):
+        """
+        Installs a service invocation after boot to reclaim domain again
+        :return:
+        """
+        #TODO
+        pass
 
