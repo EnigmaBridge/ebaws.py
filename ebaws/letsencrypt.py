@@ -162,7 +162,9 @@ class LetsEncrypt(object):
     CERTBOT_PATH = '/usr/local/bin/certbot'
     LE_CERT_PATH = '/etc/letsencrypt/live'
     CERTBOT_LOG = '/tmp/certbot.log'
+    PRIVATE_KEY = LE_PRIVATE_KEY
     CERT = LE_CERT
+    CA = LE_CA
 
     def __init__(self, email=None, domains=None, print_output=False, *args, **kwargs):
         self.email = email
@@ -203,6 +205,25 @@ class LetsEncrypt(object):
             return self.LE_CERT_PATH
         else:
             return os.path.join(self.LE_CERT_PATH, domain)
+
+    def is_certificate_ready(self, cert_dir=None, domain=None):
+        if domain is not None:
+            cert_dir = self.get_certificate_dir(domain)
+        if cert_dir is None:
+            raise ValueError('Either cert_dir or domain has to be filled')
+
+        priv_file = os.path.join(cert_dir, self.PRIVATE_KEY)
+        cert_file = os.path.join(cert_dir, self.CERT)
+        ca_file = os.path.join(cert_dir, self.CA)
+
+        if not os.path.exists(priv_file):
+            return 1
+        elif not os.path.exists(cert_file):
+            return 2
+        elif not os.path.exists(ca_file):
+            return 3
+        else:
+            return 0
 
     def print_error(self, msg):
         if self.print_output:
