@@ -41,6 +41,30 @@ class LetsEncryptToJks(object):
         if self.print_output:
             sys.stderr.write(msg)
 
+    def del_entry(self, alias=None, password=None, keystore=None):
+        """
+        keytool -delete -alias mydomain -keystore keystore.jks
+        """
+        keytool = self.get_keytool()
+        if not util.exe_exists(keytool):
+            self.print_error('Error, keytool command not found')
+            return 4
+
+        alias = alias if alias is not None else self.jks_alias
+        password = password if password is not None else self.password
+        keystore = keystore if keystore is not None else self.jks_path
+
+        cmd = 'sudo -E -H %s -delete -alias "%s" -keystore "%s" -srcstorepass "%s"' \
+              % (keytool, alias, keystore, password)
+
+        log_obj = self.KEYTOOL_LOG
+        ret, out, err = util.cli_cmd_sync(cmd, log_obj=log_obj, write_dots=self.print_output)
+        if ret != 0:
+            self.print_error('\nKeyTool command failed.')
+            self.print_error('For more information please refer to the log file: %s' % log_obj)
+            return 6
+        return 0
+
     def convert(self):
         priv_file = os.path.join(self.cert_dir, self.PRIVATE_KEY)
         cert_file = os.path.join(self.cert_dir, self.CERT)
