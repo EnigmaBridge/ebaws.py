@@ -10,7 +10,7 @@ install_requires = [
     'ebclient.py>=0.1.9',
     'cmd2',
     'pycrypto>=2.6',
-    'cryptography>=0.7',  # load_pem_x509_certificate
+    'cryptography>=0.7',   # load_pem_x509_certificate
     'parsedatetime>=1.3',  # Calendar.parseDT
     'PyOpenSSL',
     'requests',
