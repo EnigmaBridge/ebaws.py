@@ -109,7 +109,7 @@ class SysConfig(object):
         if os.path.exists(cron_path):
             os.remove(cron_path)
 
-        with util.safe_open(cron_path) as handle:
+        with util.safe_open(cron_path, mode='w', chmod=0o644) as handle:
             handle.write('# Daily certificate renewal for Enigma installation (EJBCA Lets Encrypt)\n')
             handle.write('3 3 * * * root /usr/bin/ebaws -n renew\n')
 
