@@ -15,13 +15,18 @@ import re
 __author__ = 'dusanklinec'
 
 
+LE_PRIVATE_KEY = 'privkey.pem'
+LE_CERT = 'cert.pem'
+LE_CA = 'fullchain.pem'
+
+
 class LetsEncryptToJks(object):
     """
     Imports Lets encrypt certificate to Java Key Store (JKS)
     """
-    PRIVATE_KEY = 'privkey.pem'
-    CERT = 'cert.pem'
-    CA = 'fullchain.pem'
+    PRIVATE_KEY = LE_PRIVATE_KEY
+    CERT = LE_CERT
+    CA = LE_CA
     TMP_P12 = '/tmp/tmpcert.p12'
     OPENSSL_LOG = '/tmp/openssl.log'
     KEYTOOL_LOG = '/tmp/keytool.log'
@@ -157,6 +162,7 @@ class LetsEncrypt(object):
     CERTBOT_PATH = '/usr/local/bin/certbot'
     LE_CERT_PATH = '/etc/letsencrypt/live'
     CERTBOT_LOG = '/tmp/certbot.log'
+    CERT = LE_CERT
 
     def __init__(self, email=None, domains=None, print_output=False, *args, **kwargs):
         self.email = email
