@@ -101,8 +101,8 @@ class Registration(object):
     Takes care about registration process
     """
     def __init__(self, email=None, eb_config=None, *args, **kwargs):
-        self.email = None
-        self.eb_config = None
+        self.email = email
+        self.eb_config = eb_config
         self.config = None
         self.key = None
         self.crt = None
