@@ -218,6 +218,7 @@ class Registration(object):
 
         # Step 3: save new identity configuration
         self.config = Config(eb_config=self.eb_config)
+        self.config.email = self.email
         self.config.username = regresponse['username']
         self.config.password = regresponse['password']
         self.config.apikey = apiresponse['apikey']

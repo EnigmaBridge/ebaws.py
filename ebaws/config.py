@@ -116,6 +116,15 @@ class Config(object):
 
         return candidate_list[0], candidate_list
 
+    # email
+    @property
+    def email(self):
+        return self.get_config('email')
+
+    @email.setter
+    def email(self, val):
+        self.set_config('email', val)
+
     # username
     @property
     def username(self):
