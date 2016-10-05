@@ -9,9 +9,12 @@ import types
 import subprocess
 import shutil
 import re
+import letsencrypt
+import logging
 
 
 __author__ = 'dusanklinec'
+logger = logging.getLogger(__name__)
 
 
 class Ejbca(object):
@@ -27,15 +30,19 @@ class Ejbca(object):
     USER_HOME = '/home/ec2-user'
     SSH_USER = 'ec2-user'
 
+    # EJBCA paths
     INSTALL_PROPERTIES_FILE = 'conf/install.properties'
     WEB_PROPERTIES_FILE = 'conf/web.properties'
     P12_FILE = 'p12/superadmin.p12'
 
+    # Storage paths
     PASSWORDS_FILE = '/root/ejbca.passwords'
     PASSWORDS_BACKUP_DIR = '/root/ejbca.passwords.old'
     DB_BACKUPS = '/root/ejbcadb.old'
 
+    # JBoss paths
     JBOSS_CLI = 'bin/jboss-cli.sh'
+    JBOSS_KEYSTORE = 'standalone/configuration/keystore/keystore.jks'
 
     # Default installation settings
     INSTALL_PROPERTIES = {
@@ -66,7 +73,7 @@ class Ejbca(object):
         #'superadmin.password': 'ejbca',
     }
 
-    def __init__(self, install_props=None, web_props=None, print_output=False, *args, **kwargs):
+    def __init__(self, install_props=None, web_props=None, print_output=False, eb_config=None, *args, **kwargs):
         self.install_props = install_props if install_props is not None else {}
         self.web_props = web_props if web_props is not None else {}
 
@@ -76,6 +83,12 @@ class Ejbca(object):
 
         self.print_output = print_output
         self.hostname = None
+
+        self.lets_encrypt = None
+        self.lets_encrypt_jks = None
+
+        self.eb_config = eb_config
+        self.config = None
 
         self.ejbca_install_result = 1
         pass
@@ -116,6 +129,9 @@ class Ejbca(object):
             result.append("%s=%s" % (k, prop[k]))
         result = sorted(result)
         return '\n'.join(result)
+
+    def set_config(self, config):
+        self.config = config
 
     def set_hostname(self, hostname):
         """
@@ -539,6 +555,44 @@ class Ejbca(object):
             if self.print_output:
                 sys.stderr.write('.')
         return 0, None, None
+
+    def get_keystore_path(self):
+        return os.path.abspath(os.path.join(self.get_jboss_home(), self.JBOSS_KEYSTORE))
+
+    def le_enroll(self):
+        """
+        Enrolls to LetsEncrypt with specified domains
+        :return:
+        """
+        if self.hostname is None or self.hostname == 'localhost':
+            logger.info("Hostname is none/localhost, no letsencrypt operation will be performed")
+            return 1
+
+        self.lets_encrypt = letsencrypt.LetsEncrypt(email=self.config.email, domains=self.hostname, print_output=self.print_output)
+        ret, out, err = self.lets_encrypt.certonly()
+        if ret != 0:
+            return 2
+
+        # LetsEncrypt certificate is OK. Create JKS.
+        # Backup previous JKS, delete the old one
+        jks_path = self.get_keystore_path()
+        util.delete_file_backup(jks_path, chmod=0o600, backup_dir=self.DB_BACKUPS)
+
+        # Create new JKS
+        cert_dir = self.lets_encrypt.get_certificate_dir(self.hostname)
+        self.lets_encrypt_jks = letsencrypt.LetsEncryptToJks(
+            cert_dir=cert_dir,
+            jks_path=jks_path,
+            jks_alias=self.hostname,
+            password=self.http_pass,
+            print_output=self.print_output)
+
+        ret = self.lets_encrypt_jks.convert()
+        if ret != 0:
+            return 3
+
+        self.config.ejbca_hostname = self.hostname
+        return 0
 
     def undeploy(self):
         """

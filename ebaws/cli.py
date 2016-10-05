@@ -161,8 +161,11 @@ class App(Cmd):
             print("Going to install EJBCA")
             print("  This may take 5-15 minutes, please, do not interrupt the installation")
             print("  and wait until the process completes.\n")
+
+            ejbca.set_config(new_config)
             ejbca.set_hostname(hostname)
             ejbca.configure()
+
             if ejbca.ejbca_install_result != 0:
                 print("\nEJBCA installation error, please, try again.")
                 return
@@ -202,6 +205,17 @@ class App(Cmd):
                 print('Pin for the SoftHSMv1 (EnigmaBridge) token is 0000')
             else:
                 print('\nEnigmaBridgeToken added to EJBCA')
+
+            # LetsEncrypt enrollment
+            print('\nInstalling LetsEncrypt certificate:')
+            ret = ejbca.le_enroll()
+            if ret == 0:
+                Core.write_configuration(ejbca.config)
+                ejbca.jboss_reload()
+                print('\nLetsEncrypt certificate installed')
+
+            else:
+                print('\nFailed to install LetsEncrypt certificate. You can try it again later with command renew')
 
             # Finalize, P12 file & final instructions
             new_p12 = ejbca.copy_p12_file()

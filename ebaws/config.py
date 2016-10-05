@@ -179,7 +179,6 @@ class Config(object):
     def nsdomain(self, val):
         self.set_config('nsdomain', val)
 
-
     # DNS domains
     @property
     def domains(self):
@@ -188,6 +187,15 @@ class Config(object):
     @domains.setter
     def domains(self, val):
         self.set_config('domains', val)
+
+    # EJBCA hostname
+    @property
+    def ejbca_hostname(self):
+        return self.get_config('ejbca_hostname')
+
+    @ejbca_hostname.setter
+    def ejbca_hostname(self, val):
+        self.set_config('ejbca_hostname', val)
 
     # process endpoint
     @property
