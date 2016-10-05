@@ -390,9 +390,24 @@ class App(Cmd):
                 time.sleep(3)
         pass
 
+    def app_main(self):
+        # Backup original arguments for later parsing
+        args = sys.argv
+
+        # Fixing cmd2 arg parsing, call cmdLoop
+        sys.argv = []
+        for arg in args:
+            if arg.startswith('-'):
+                break
+            sys.argv.append(arg)
+
+        self.cmdloop()
+        sys.argv = args
+
 
 def main():
-    App().cmdloop()
+    app = App()
+    app.app_main()
 
 
 if __name__ == '__main__':
