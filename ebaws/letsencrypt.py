@@ -98,11 +98,11 @@ class LetsEncryptToJks(object):
 
         try:
             cmd = 'sudo -E -H %s pkcs12 -export -out "%s" ' \
-                  '-password pass:"%s" ' \
-                  '-inkey "%s" ' \
-                  '-in "%s" ' \
-                  '-certfile "%s" ' \
-                  '-name "%s' % (openssl, p12_name, self.password, priv_file, cert_file, ca_file, self.jks_alias)
+                  ' -password pass:"%s" ' \
+                  ' -inkey "%s" ' \
+                  ' -in "%s" ' \
+                  ' -certfile "%s" ' \
+                  ' -name "%s" ' % (openssl, p12_name, self.password, priv_file, cert_file, ca_file, self.jks_alias)
 
             log_obj = self.OPENSSL_LOG
             ret, out, err = util.cli_cmd_sync(cmd, log_obj=log_obj, write_dots=self.print_output)
@@ -113,12 +113,12 @@ class LetsEncryptToJks(object):
 
             # 2. step - create JKS
             cmd = 'sudo -E -H %s -importkeystore -deststorepass "%s" ' \
-                  '-destkeypass "%s" ' \
-                  '-destkeystore "%s" ' \
-                  '-srckeystore "%s" ' \
-                  '-srcstoretype PKCS12 ' \
-                  '-srcstorepass "%s" ' \
-                  '-alias "%s"' % (keytool, self.password, self.password, self.jks_path, p12_name, self.password, self.jks_alias)
+                  ' -destkeypass "%s" ' \
+                  ' -destkeystore "%s" ' \
+                  ' -srckeystore "%s" ' \
+                  ' -srcstoretype PKCS12 ' \
+                  ' -srcstorepass "%s" ' \
+                  ' -alias "%s" ' % (keytool, self.password, self.password, self.jks_path, p12_name, self.password, self.jks_alias)
 
             log_obj = self.KEYTOOL_LOG
             ret, out, err = util.cli_cmd_sync(cmd, log_obj=log_obj, write_dots=self.print_output)
@@ -159,9 +159,9 @@ class LetsEncrypt(object):
         log_obj = self.CERTBOT_LOG
 
         ret, out, err = util.cli_cmd_sync(cmd_exec, log_obj=log_obj, write_dots=self.print_output)
-        if ret != 0 and self.print_output:
-            sys.stderr.write('\nCertbot command failed: %s\n' % cmd_exec)
-            sys.stderr.write('For more information please refer to the log file: %s' % log_obj)
+        if ret != 0:
+            self.print_error('\nCertbot command failed: %s\n' % cmd_exec)
+            self.print_error('For more information please refer to the log file: %s' % log_obj)
 
         return ret, out, err
 
@@ -172,8 +172,8 @@ class LetsEncrypt(object):
 
         ret, out, err = util.cli_cmd_sync(cmd_exec, log_obj=log_obj, write_dots=self.print_output)
         if ret != 0 and self.print_output:
-            sys.stderr.write('\nCertbot command failed: %s\n' % cmd_exec)
-            sys.stderr.write('For more information please refer to the log file: %s' % log_obj)
+            self.print_error('\nCertbot command failed: %s\n' % cmd_exec)
+            self.print_error('For more information please refer to the log file: %s' % log_obj)
 
         return ret, out, err
 
@@ -183,12 +183,17 @@ class LetsEncrypt(object):
         else:
             return os.path.join(self.LE_CERT_PATH, domain)
 
+    def print_error(self, msg):
+        if self.print_output:
+            sys.stderr.write(msg)
+
     @staticmethod
-    def get_standalone_cmd(self, domain, email=None, expand=False):
-        cmd_email_part = self.get_email_cmd(email)
+    def get_standalone_cmd(domain, email=None, expand=False):
+        cmd_email_part = LetsEncrypt.get_email_cmd(email)
 
         domains = domain if isinstance(domain, types.ListType) else [domain]
-        cmd_domains_part = ' -d '.join(domains)
+        domains = ['"%s"' % x.strip() for x in domains]
+        cmd_domains_part = ' -d ' + (' -d '.join(domains))
 
         cmd_expand_part = '' if not expand else ' --expand '
 
@@ -201,7 +206,10 @@ class LetsEncrypt(object):
 
     @staticmethod
     def get_email_cmd(email):
+        email = email if email is not None else ''
+        email = email.strip()
+
         cmd = '--register-unsafely-without-email'
-        if email is not None:
+        if len(email) > 0:
             cmd = '--email ' + email
         return cmd
