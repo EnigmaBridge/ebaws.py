@@ -206,7 +206,7 @@ class LetsEncrypt(object):
         else:
             return os.path.join(self.LE_CERT_PATH, domain)
 
-    def is_certificate_ready(self, cert_dir=None, domain=None):
+    def get_cert_paths(self, cert_dir=None, domain=None):
         if domain is not None:
             cert_dir = self.get_certificate_dir(domain)
         if cert_dir is None:
@@ -215,7 +215,10 @@ class LetsEncrypt(object):
         priv_file = os.path.join(cert_dir, self.PRIVATE_KEY)
         cert_file = os.path.join(cert_dir, self.CERT)
         ca_file = os.path.join(cert_dir, self.CA)
+        return priv_file, cert_file, ca_file
 
+    def is_certificate_ready(self, cert_dir=None, domain=None):
+        priv_file, cert_file, ca_file = self.get_cert_paths(cert_dir=cert_dir, domain=domain)
         if not os.path.exists(priv_file):
             return 1
         elif not os.path.exists(cert_file):
