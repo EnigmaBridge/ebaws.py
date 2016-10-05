@@ -155,7 +155,7 @@ class App(Cmd):
                 print("SoftHSMv1 previous token database moved to: %s" % backup_dir)
 
             out, err = soft_config.init_token(user=ejbca.JBOSS_USER)
-            print("SoftHSMv1 initialization: %s\n" % out)
+            print("SoftHSMv1 initialization: %s" % out)
 
             # EJBCA configuration
             print("Going to install EJBCA")
@@ -207,7 +207,7 @@ class App(Cmd):
                 print('\nEnigmaBridgeToken added to EJBCA')
 
             # LetsEncrypt enrollment
-            print('\nInstalling LetsEncrypt certificate:')
+            print('\nInstalling LetsEncrypt certificate for: %s' % hostname)
             ret = ejbca.le_enroll()
             if ret == 0:
                 Core.write_configuration(ejbca.config)
@@ -215,7 +215,8 @@ class App(Cmd):
                 print('\nLetsEncrypt certificate installed')
 
             else:
-                print('\nFailed to install LetsEncrypt certificate. You can try it again later with command renew')
+                print('\nFailed to install LetsEncrypt certificate, code=%s.' % ret)
+                print('You can try it again later with command renew\n')
 
             # Finalize, P12 file & final instructions
             new_p12 = ejbca.copy_p12_file()
