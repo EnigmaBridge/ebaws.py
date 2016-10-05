@@ -593,6 +593,7 @@ class Ejbca(object):
             return 3
 
         self.config.ejbca_hostname = self.hostname
+        self.config.ejbca_jks_password = self.http_pass
         return 0
 
     def undeploy(self):

@@ -197,6 +197,15 @@ class Config(object):
     def ejbca_hostname(self, val):
         self.set_config('ejbca_hostname', val)
 
+    # EJBCA hostname
+    @property
+    def ejbca_jks_password(self):
+        return self.get_config('ejbca_jks_password')
+
+    @ejbca_jks_password.setter
+    def ejbca_jks_password(self, val):
+        self.set_config('ejbca_jks_password', val)
+
     # process endpoint
     @property
     def endpoint_process(self):
