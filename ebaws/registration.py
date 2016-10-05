@@ -312,6 +312,7 @@ class Registration(object):
             raise InvalidResponse('domains not in the response')
 
         self.config.domains = resp_update['domains']
+        self.config.last_ipv4 = self.info_loader.ami_public_ip
         return self.config
 
     def get_cert_pem_json(self):

@@ -206,6 +206,15 @@ class Config(object):
     def ejbca_jks_password(self, val):
         self.set_config('ejbca_jks_password', val)
 
+    # Last public IPV4 used by EJBCA domain
+    @property
+    def last_ipv4(self):
+        return self.get_config('last_ipv4')
+
+    @last_ipv4.setter
+    def last_ipv4(self, val):
+        self.set_config('last_ipv4', val)
+
     # process endpoint
     @property
     def endpoint_process(self):
