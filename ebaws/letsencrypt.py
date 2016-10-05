@@ -148,13 +148,13 @@ class LetsEncrypt(object):
         self.domains = domains
         self.print_output = print_output
 
-    def certonly(self, email=None, domains=None):
+    def certonly(self, email=None, domains=None, expand=False):
         if email is not None:
             self.email = email
         if domains is not None:
             self.domains = domains
 
-        cmd = self.get_standalone_cmd(self.domains, self.email)
+        cmd = self.get_standalone_cmd(self.domains, email=self.email, expand=expand)
         cmd_exec = 'sudo -E -H %s %s' % (self.CERTBOT_PATH, cmd)
         log_obj = self.CERTBOT_LOG
 
@@ -177,11 +177,6 @@ class LetsEncrypt(object):
 
         return ret, out, err
 
-    def build_jks(self, domain):
-        cert_dir = self.get_certificate_dir(domain)
-        #builder = LetsEncryptToJks(cert_dir=cert_dir, )
-        pass
-
     def get_certificate_dir(self, domain=None):
         if domain is None:
             return self.LE_CERT_PATH
@@ -189,13 +184,15 @@ class LetsEncrypt(object):
             return os.path.join(self.LE_CERT_PATH, domain)
 
     @staticmethod
-    def get_standalone_cmd(self, domain, email=None):
+    def get_standalone_cmd(self, domain, email=None, expand=False):
         cmd_email_part = self.get_email_cmd(email)
 
         domains = domain if isinstance(domain, types.ListType) else [domain]
         cmd_domains_part = ' -d '.join(domains)
 
-        cmd = 'certonly --standalone --text -n --agree-tos %s %s ' % (cmd_email_part, cmd_domains_part)
+        cmd_expand_part = '' if not expand else ' --expand '
+
+        cmd = 'certonly --standalone --text -n --agree-tos %s %s %s' % (cmd_email_part, cmd_domains_part, cmd_expand_part)
         return cmd
 
     @staticmethod
