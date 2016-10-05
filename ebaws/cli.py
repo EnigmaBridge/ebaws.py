@@ -169,6 +169,8 @@ class App(Cmd):
             if ejbca.ejbca_install_result != 0:
                 print("\nEJBCA installation error, please, try again.")
                 return
+
+            Core.write_configuration(ejbca.config)
             print("\nEJBCA installed successfully.")
 
             # Generate new keys
