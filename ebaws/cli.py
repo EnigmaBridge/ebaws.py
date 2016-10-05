@@ -85,7 +85,7 @@ class App(Cmd):
             reg_svc = Registration(email=email, eb_cfg=eb_cfg)
             soft_config = SoftHsmV1Config()
             ejbca = Ejbca(print_output=True)
-            syscfg = SysConfig()
+            syscfg = SysConfig(print_output=True)
             hostname = None
 
             # Determine if we have enough RAM for the work.
@@ -284,6 +284,10 @@ class App(Cmd):
         else:
             # Renew the certs
             self.le_renew(ejbca)
+        pass
+
+    def do_onboot(self, line):
+        """Command called by the init script/systemd on boot, takes care about IP re-registration"""
         pass
 
     def do_undeploy_ejbca(self, line):

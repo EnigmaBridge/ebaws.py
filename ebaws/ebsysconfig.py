@@ -11,6 +11,7 @@ import shutil
 import re
 import psutil
 import math
+import consts
 
 
 __author__ = 'dusanklinec'
@@ -19,7 +20,8 @@ __author__ = 'dusanklinec'
 class SysConfig(object):
     """Basic system configuration object"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, print_output=False, *args, **kwargs):
+        self.print_output = print_output
         pass
 
     def get_virt_mem(self):
@@ -100,6 +102,10 @@ class SysConfig(object):
         p.communicate()
         return p.returncode, fname, desired_size
 
+    def print_error(self, msg):
+        if self.print_output:
+            sys.stderr.write(msg)
+
     def install_cron_renew(self):
         """
         Installs cronjob for certificate renewal
@@ -112,12 +118,38 @@ class SysConfig(object):
         with util.safe_open(cron_path, mode='w', chmod=0o644) as handle:
             handle.write('# Daily certificate renewal for Enigma installation (EJBCA Lets Encrypt)\n')
             handle.write('3 3 * * * root /usr/bin/ebaws -n renew\n')
+        return 0
 
     def install_onboot_check(self):
         """
         Installs a service invocation after boot to reclaim domain again
         :return:
         """
-        #TODO
-        pass
+        os_name, os_version = util.get_os_info()
+        os_name = os_name.lower()
+
+        if os_name in ['rhel', 'centos'] and os_version.startswith('7'):
+            self.print_error('CentOS/RHEL version 7 is not supported yet')
+            return 1
+
+        # Write simple init script
+        initd_path = '/etc/init.d/ebaws-onboot'
+        if os.path.exists(initd_path):
+            os.remove(initd_path)
+
+        with util.safe_open(initd_path, mode='w', chmod=0o755) as handle:
+            handle.write(self.get_onboot_init_script())
+            handle.write('\n')
+
+        # Set service to start after boot
+        p = subprocess.Popen('chkconfig --level=345 ebaws-onboot on', shell=True)
+        p.communicate()
+        if p.returncode != 0:
+            self.print_error('Error: Could not install on boot system service\n')
+            return 2
+
+        return 0
+
+    def get_onboot_init_script(self):
+        return consts.ONBOOT_INIT_SCRIPT
 
