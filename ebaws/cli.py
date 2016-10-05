@@ -5,6 +5,8 @@ import os
 import math
 import types
 import traceback
+import pid
+import time
 from consts import *
 from core import Core
 from registration import Registration
@@ -21,6 +23,16 @@ class App(Cmd):
                      '\n    For help, type usage\n' + \
                      '\n    init - initializes the EJBCA instance\n' + \
             '-'*80
+
+    def __init__(self, *args, **kwargs):
+        """
+        Init core
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        Cmd.__init__(self, *args, **kwargs)
+        self.core = Core()
 
     def do_dump_config(self, line):
         """Dumps the current configuration to the terminal"""
@@ -40,7 +52,7 @@ class App(Cmd):
          - EJBCA is reinstalled with PKCS#11 support, with new certificates
         Previous configuration data is backed up.
         """
-        if not self.check_root():
+        if not self.check_root() or not self.check_pid():
             return
 
         print "Going to initialize the EB identity"
@@ -229,7 +241,7 @@ class App(Cmd):
 
     def do_renew(self, line):
         """Renews LetsEncrypt certificates used for the JBoss"""
-        if not self.check_root():
+        if not self.check_root() or not self.check_pid():
             return
 
         config = Core.read_configuration()
@@ -267,7 +279,7 @@ class App(Cmd):
 
     def do_undeploy_ejbca(self, line):
         """Undeploys EJBCA without any backup left"""
-        if not self.check_root():
+        if not self.check_root() or not self.check_pid():
             return
 
         print "Going to undeploy and remove EJBCA from the system"
@@ -351,8 +363,28 @@ class App(Cmd):
             return False
         return True
 
-    def do_EOF(self, line):
-        return True
+    def check_pid(self, retry=True):
+        """Checks if the tool is running"""
+        first_retry = True
+        attempt_ctr = 0
+        while first_retry or retry:
+            try:
+                first_retry = False
+                attempt_ctr += 1
+                self.core.pidlock_create()
+                if attempt_ctr > 1:
+                    print("PID lock acquired")
+                return True
+
+            except pid.PidFileAlreadyRunningError as e:
+                return True
+
+            except pid.PidFileError as e:
+                pidnum = self.core.pidlock_get_pid()
+                print("\nError: CLI already running in exclusive mode by PID: %d" % pidnum)
+                print("Next check will be performed in few seconds. Waiting...")
+                time.sleep(3)
+        pass
 
 
 def main():
