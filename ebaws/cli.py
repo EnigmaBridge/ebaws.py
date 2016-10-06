@@ -323,6 +323,9 @@ class App(Cmd):
                     print("  - %s" % dom)
                 print("")
 
+            if config.ejbca_hostname is not None:
+                print("Domain used for EJBCA: %s\n" % config.ejbca_hostname)
+
             # Identity load (keypair)
             ret = reg_svc.load_identity()
             if ret != 0:
