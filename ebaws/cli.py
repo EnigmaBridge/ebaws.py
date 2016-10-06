@@ -318,11 +318,18 @@ class App(Cmd):
                 print("\nDomains currently registered: ")
                 for dom in config.domains:
                     print("  - %s" % dom)
+                print("")
 
+            # Identity load (keypair)
             ret = reg_svc.load_identity()
             if ret != 0:
                 print("\nError! Could not load identity (key-pair is missing)")
                 return self.return_code(3)
+
+            # IP has changed?
+            if config.last_ipv4 is not None:
+                print("Last IPv4 used for domain registration: %s" % config.last_ipv4)
+            print("Current IPv4: %s" % reg_svc.info_loader.ami_public_ip)
 
             # Assign a new dynamic domain for the host
             domain_is_ok = False
@@ -336,7 +343,7 @@ class App(Cmd):
                         domain_is_ok = True
                         print("\nNew domains registered for this host: ")
                         for domain in new_config.domains:
-                            print("  %s" % domain)
+                            print("  - %s" % domain)
                         print("")
 
                 except Exception as e:
@@ -356,9 +363,18 @@ class App(Cmd):
             # Is it OK if domain assignment failed?
             if not domain_is_ok:
                 print("\nDomain could not be assigned. You can try domain reassign later.")
-            else:
-                Core.write_configuration(new_config)
-                return self.return_code(0)
+                return self.return_code(1)
+
+            new_config.last_ipv4 = reg_svc.info_loader.ami_public_ip
+
+            # Is original hostname used in the EJBCA in domains?
+            if new_config.ejbca_hostname is not None \
+                    and new_config.ejbca_hostname not in new_config.domains:
+                print("\nWarning! Returned domains do not correspond to the domain used during EJBCA installation %s" % new_config.ejbca_hostname)
+                print("\nEJBCA redeploy has to be performed, this operations is not yet supported")
+
+            Core.write_configuration(new_config)
+            return self.return_code(0)
 
         except Exception as ex:
             traceback.print_exc()
