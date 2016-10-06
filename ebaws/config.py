@@ -197,7 +197,7 @@ class Config(object):
     def ejbca_hostname(self, val):
         self.set_config('ejbca_hostname', val)
 
-    # EJBCA hostname
+    # EJBCA key store password
     @property
     def ejbca_jks_password(self):
         return self.get_config('ejbca_jks_password')
