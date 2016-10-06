@@ -251,7 +251,7 @@ class App(Cmd):
 
         except Exception as ex:
             traceback.print_exc()
-            print "Exception in the registration process"
+            print "Exception in the registration process, cannot continue."
 
     def do_renew(self, arg):
         """Renews LetsEncrypt certificates used for the JBoss"""
@@ -293,7 +293,67 @@ class App(Cmd):
 
     def do_onboot(self, line):
         """Command called by the init script/systemd on boot, takes care about IP re-registration"""
-        pass
+        if not self.check_root() or not self.check_pid():
+            return
+
+        config = Core.read_configuration()
+        if config is None or not config.has_nonempty_config():
+            print "\nError! Enigma config file not found %s" % (Core.get_config_file_path())
+            print " Cannot continue. Have you run init already?\n"
+            return
+
+        eb_cfg = Core.get_default_eb_config()
+        try:
+            reg_svc = Registration(email=config.email, eb_config=eb_cfg, config=config)
+            domains = config.domains
+            if domains is not None and isinstance(domains, types.ListType) and len(domains) > 0:
+                print("\nDomains currently registered: ")
+                for dom in config.domains:
+                    print("  - %s" % dom)
+
+            ret = reg_svc.load_identity()
+            if ret != 0:
+                print("\nError! Could not load identity (key-pair is missing)")
+                return
+
+            # Assign a new dynamic domain for the host
+            domain_is_ok = False
+            domain_ctr = 0
+            new_config = config
+            while not domain_is_ok:
+                try:
+                    new_config = reg_svc.refresh_domain()
+
+                    if new_config.domains is not None and len(new_config.domains) > 0:
+                        domain_is_ok = True
+                        print("\nNew domains registered for this host: ")
+                        for domain in new_config.domains:
+                            print("  %s" % domain)
+                        print("")
+
+                except Exception as e:
+                    domain_ctr += 1
+                    if self.args.debug:
+                        traceback.print_exc()
+
+                    print("\nError during domain registration, no dynamic domain will be assigned")
+                    if self.noninteractive:
+                        if domain_ctr >= self.args.attempts:
+                            break
+                    else:
+                        should_continue = self.ask_proceed("Do you want to try again? (Y/n): ")
+                        if not should_continue:
+                            break
+
+            # Is it OK if domain assignment failed?
+            if not domain_is_ok:
+                print("\nDomain could not be assigned. You can try domain reassign later.")
+            else:
+                Core.write_configuration(new_config)
+
+        except Exception as ex:
+            traceback.print_exc()
+            print "Exception in the domain registration process, cannot continue."
 
     def do_undeploy_ejbca(self, line):
         """Undeploys EJBCA without any backup left"""
@@ -415,6 +475,10 @@ class App(Cmd):
         parser = argparse.ArgumentParser(description='EnigmaBridge AWS client')
         parser.add_argument('-n, --non-interactive', dest='noninteractive', action='store_const', const=True,
                             help='non-interactive mode of operation, command line only')
+        parser.add_argument('-r, --attempts', dest='attempts', type=int, default=3,
+                            help='number of attempts in non-interactive mode')
+        parser.add_argument('--debug', dest='debug', action='store_const', const=True,
+                            help='enables debug mode')
 
         parser.add_argument('commands', nargs=argparse.ZERO_OR_MORE, default=[],
                             help='commands to process')
