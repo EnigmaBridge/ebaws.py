@@ -315,7 +315,7 @@ class App(Cmd):
 
         eb_cfg = Core.get_default_eb_config()
         try:
-            reg_svc = Registration(email=config.email, eb_config=eb_cfg, config=config)
+            reg_svc = Registration(email=config.email, eb_config=eb_cfg, config=config, debug=self.args.debug)
             domains = config.domains
             if domains is not None and isinstance(domains, types.ListType) and len(domains) > 0:
                 print("\nDomains currently registered: ")

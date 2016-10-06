@@ -100,8 +100,9 @@ class Registration(object):
     """
     Takes care about registration process
     """
-    def __init__(self, email=None, eb_config=None, config=None, *args, **kwargs):
+    def __init__(self, email=None, eb_config=None, config=None, debug=False, *args, **kwargs):
         self.email = email
+        self.debug = debug
         self.eb_config = eb_config
         self.config = config
         self.key = None
@@ -305,10 +306,12 @@ class Registration(object):
         try:
             resp_update = req_upd.call()
         except Exception as e:
-            # print signature_aux
-            # print req_upd.response
-            # print req_upd.request.body
-            raise e
+            if self.debug:
+                print api_data_req_body
+                print signature_aux
+                print req_upd.response
+                print req_upd.request.body
+            raise
 
         if 'domains' not in resp_update:
             raise InvalidResponse('domains not in the response')
