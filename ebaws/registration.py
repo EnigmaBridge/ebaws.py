@@ -158,16 +158,18 @@ class Registration(object):
         if not os.path.exists(self.key_path):
             return None
 
-        with util.safe_open(self.key_path, 'rb', chmod=0o600) as key:
+        with open(self.key_path, mode='r') as key:
             self.key_pem = key.read()
-            self.key = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, self.key_pem)
+            self.key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, self.key_pem)
             self.key_crypto = util.load_pem_private_key(self.key_pem)
             self.key_py = util.load_pem_private_key_pycrypto(self.key_pem)
 
-        with util.safe_open(self.crt_path, 'rb', chmod=0o600) as crt:
+        with open(self.crt_path, mode='r') as crt:
             self.crt_pem = crt.read()
             self.crt = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, self.crt_pem)
             self.crt_crypto = util.load_x509(self.crt_pem)
+
+        return 0
 
     def new_registration(self):
         """
