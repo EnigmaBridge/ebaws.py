@@ -218,14 +218,15 @@ class App(Cmd):
                 ]
 
             if ret != 0:
-                print('\nError generating a new keys')
+                print('\nError generating new keys')
                 print('You can do it later manually by calling')
 
                 for tmpcmd in key_gen_cmds:
                     print('  %s' % ejbca.pkcs11_get_command(tmpcmd))
 
-                print('Error from the command:')
+                print('\nError from the command:')
                 print(''.join(out))
+                print('\n')
                 print(''.join(err))
             else:
                 print('\nEnigmaBridge tokens generated successfully')
