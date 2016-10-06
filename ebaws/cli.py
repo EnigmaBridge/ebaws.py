@@ -289,7 +289,7 @@ class App(Cmd):
             enroll_new_cert = le_test.is_certificate_ready(domain=ejbca_host) != 0
         else:
             ejbca_host = domains[0]
-            ejbca.hostname = ejbca_host
+        ejbca.hostname = ejbca_host
 
         if enroll_new_cert:
             # Enroll a new certificate
