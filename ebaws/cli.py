@@ -386,6 +386,17 @@ class App(Cmd):
 
         return self.return_code(1)
 
+    def do_change_hostname(self, line):
+        """Changes hostname of the EJBCA installation"""
+        print("This functionality is not yet implemented")
+        print("Basically, its needed:\n"
+              " - edit conf/web.properties and change hostname there\n"
+              " - ant deployear in EJBCA to redeploy EJBCA to JBoss with new settings (preserves DB)\n"
+              " - edit /etc/enigma/config.json ejbca_hostname field\n"
+              " - edit /etc/enigma/config.json ejbca_hostname_custom to true\n"
+              " - call renew command")
+        return self.return_code(1)
+
     def do_undeploy_ejbca(self, line):
         """Undeploys EJBCA without any backup left"""
         if not self.check_root() or not self.check_pid():
