@@ -137,16 +137,20 @@ class App(Cmd):
                         hostname = new_config.domains[0]
                         print("\nNew domains registered for this host: ")
                         for domain in new_config.domains:
-                            print("  %s" % domain)
+                            print("  - %s" % domain)
                         print("")
 
                 except Exception as e:
                     domain_ctr += 1
-                    print("\nError during domain registration, no dynamic domain will be assigned")
-                    print("Do you want to try again?")
-                    should_continue = self.ask_proceed()
-                    if not should_continue:
-                        break
+
+                    if self.noninteractive:
+                        if domain_ctr >= self.args.attempts:
+                            break
+                    else:
+                        print("\nError during domain registration, no dynamic domain will be assigned")
+                        should_continue = self.ask_proceed("Do you want to try again? (Y/n): ")
+                        if not should_continue:
+                            break
 
             # Is it OK if domain assignment failed?
             if not domain_is_ok:
