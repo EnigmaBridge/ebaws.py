@@ -85,7 +85,7 @@ class App(Cmd):
         email = self.ask_for_email()
         eb_cfg = Core.get_default_eb_config()
         try:
-            reg_svc = Registration(email=email, eb_cfg=eb_cfg)
+            reg_svc = Registration(email=email, eb_config=eb_cfg)
             soft_config = SoftHsmV1Config()
             ejbca = Ejbca(print_output=True)
             syscfg = SysConfig(print_output=True)
