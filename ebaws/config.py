@@ -54,10 +54,10 @@ class Config(object):
     def has_nonempty_config(self):
         return self.json is not None and 'config' in self.json and len(self.json['config']) > 0
 
-    def get_config(self, key):
+    def get_config(self, key, default=None):
         if not self.has_nonempty_config():
-            return None
-        return self.json['config'][key] if key in self.json['config'] else None
+            return default
+        return self.json['config'][key] if key in self.json['config'] else default
 
     def set_config(self, key, val):
         self.ensure_config()
