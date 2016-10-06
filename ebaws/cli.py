@@ -288,20 +288,21 @@ class App(Cmd):
 
         le_test = LetsEncrypt()
         enroll_new_cert = ejbca_host is None or len(ejbca_host) == 0 or ejbca_host == 'localhost'
+        if enroll_new_cert:
+            ejbca_host = domains[0]
 
         if not enroll_new_cert:
             enroll_new_cert = le_test.is_certificate_ready(domain=ejbca_host) != 0
-        else:
-            ejbca_host = domains[0]
-        ejbca.hostname = ejbca_host
 
+        ret = 0
+        ejbca.hostname = ejbca_host
         if enroll_new_cert:
             # Enroll a new certificate
-            self.le_install(ejbca)
+            ret = self.le_install(ejbca)
         else:
             # Renew the certs
-            self.le_renew(ejbca)
-        return self.return_code(0)
+            ret = self.le_renew(ejbca)
+        return self.return_code(ret)
 
     def do_onboot(self, line):
         """Command called by the init script/systemd on boot, takes care about IP re-registration"""
@@ -440,6 +441,13 @@ class App(Cmd):
         return ret
 
     def le_renew(self, ejbca):
+        le_test = LetsEncrypt()
+
+        renew_needed = self.args.force or le_test.test_certificate_for_renew(domain=ejbca.hostname, renewal_before=60*60*24*20) != 0
+        if not renew_needed:
+            print('\nRenewal for %s is not needed now. Run with --force to override this' % ejbca.hostname)
+            return 0
+
         print('\nRenewing LetsEncrypt certificate for: %s' % ejbca.hostname)
         ret = ejbca.le_renew()
         if ret == 0:
@@ -558,6 +566,8 @@ class App(Cmd):
                             help='number of attempts in non-interactive mode')
         parser.add_argument('--debug', dest='debug', action='store_const', const=True,
                             help='enables debug mode')
+        parser.add_argument('--force', dest='force', action='store_const', const=True, default=False,
+                            help='forces some action (e.g., certificate renewal)')
         parser.add_argument('--email', dest='email', default=None,
                             help='email address to use instead of prompting for one')
         parser.add_argument('--yes', dest='yes', action='store_const', const=True,

@@ -228,6 +228,41 @@ class LetsEncrypt(object):
         else:
             return 0
 
+    def test_certificate_for_renew(self, cert_dir=None, domain=None, renewal_before=60*60*24*30):
+        """Tries to load PEM certificate and check not after"""
+        priv_file, cert_file, ca_file = self.get_cert_paths(cert_dir=cert_dir, domain=domain)
+        if not os.path.exists(cert_file):
+            return 1
+
+        try:
+            x509_pem = None
+            with open(cert_file, 'r') as hnd:
+                x509_pem = hnd.read()
+
+            if x509_pem is None or len(x509_pem) == 0:
+                return 2
+
+            x509 = util.load_x509(x509_pem)
+            if x509 is None:
+                return 3
+
+            not_after = x509.not_valid_after
+            utc_now = datetime.utcnow()
+
+            # Already expired?
+            if not_after <= utc_now:
+                return 4
+
+            delta = not_after - utc_now
+            delta_sec = delta.total_seconds()
+
+            if delta_sec < renewal_before:
+                return 5
+
+            return 0
+        except:
+            return 100
+
     def print_error(self, msg):
         if self.print_output:
             sys.stderr.write(msg)
