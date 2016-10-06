@@ -206,6 +206,15 @@ class Config(object):
     def ejbca_jks_password(self, val):
         self.set_config('ejbca_jks_password', val)
 
+    # EJBCA custom hostname flag
+    @property
+    def ejbca_hostname_custom(self):
+        return self.get_config('ejbca_hostname_custom', default=False)
+
+    @ejbca_hostname_custom.setter
+    def ejbca_hostname_custom(self, val):
+        self.set_config('ejbca_hostname_custom', val)
+
     # Last public IPV4 used by EJBCA domain
     @property
     def last_ipv4(self):
