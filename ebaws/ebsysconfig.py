@@ -117,7 +117,7 @@ class SysConfig(object):
 
         with util.safe_open(cron_path, mode='w', chmod=0o644) as handle:
             handle.write('# Daily certificate renewal for Enigma installation (EJBCA Lets Encrypt)\n')
-            handle.write('3 3 * * * root /usr/bin/ebaws -n renew\n')
+            handle.write('3 3 * * * root /usr/bin/ebaws -n renew >/dev/null 2>/dev/null \n')
         return 0
 
     def install_onboot_check(self):
