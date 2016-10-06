@@ -32,6 +32,13 @@ echo -n '' > /var/log/cloud-init-output.log
 echo -n '' > /var/log/dracut.log
 echo -n '' > /var/log/audit/audit.log
 /bin/rm /var/log/audit/audit.log.*
+/bin/rm /var/log/btmp-*
+/bin/rm /var/log/cron-*
+/bin/rm /var/log/maillog-*
+/bin/rm /var/log/messages-*
+/bin/rm /var/log/secure-*
+/bin/rm /var/log/spooler-*
+/bin/rm /var/log/ebaws-onboot.log
 /bin/rm -rf /var/log/letsencrypt
 
 sudo passwd -l root
