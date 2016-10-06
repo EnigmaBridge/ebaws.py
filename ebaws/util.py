@@ -685,3 +685,7 @@ def safe_email(email):
         return False
 
 
+def get_utc_sec():
+    return time.time()
+
+
