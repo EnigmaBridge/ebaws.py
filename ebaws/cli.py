@@ -8,6 +8,7 @@ import traceback
 import pid
 import time
 import util
+import errors
 from consts import *
 from core import Core
 from registration import Registration
@@ -63,7 +64,7 @@ class App(Cmd):
         print "Going to initialize the EB identity"
         print "WARNING! This is a destructive process!"
         print "WARNING! The previous installation will be overwritten.\n"
-        should_continue = self.ask_proceed()
+        should_continue = self.ask_proceed(support_non_interactive=True)
         if not should_continue:
             return
 
@@ -71,7 +72,7 @@ class App(Cmd):
         if config is not None and config.has_nonempty_config():
             print "\nWARNING! Configuration already exists in the file %s" % (Core.get_config_file_path())
             print "The configuration will be overwritten by a new one (current config will be backed up)\n"
-            should_continue = self.ask_proceed()
+            should_continue = self.ask_proceed(support_non_interactive=True)
             if not should_continue:
                 return
 
@@ -98,7 +99,7 @@ class App(Cmd):
                       % int(math.ceil(total_mem/1024/1024)))
 
                 print("New swap file will be installed in /var")
-                should_continue = self.ask_proceed()
+                should_continue = self.ask_proceed(support_non_interactive=True)
                 if not should_continue:
                     return
 
@@ -362,12 +363,12 @@ class App(Cmd):
 
         print "Going to undeploy and remove EJBCA from the system"
         print "WARNING! This is a destructive process!"
-        should_continue = self.ask_proceed()
+        should_continue = self.ask_proceed(support_non_interactive=True)
         if not should_continue:
             return
 
         print "WARNING! This is the last chance."
-        should_continue = self.ask_proceed()
+        should_continue = self.ask_proceed(support_non_interactive=True)
         if not should_continue:
             return
 
@@ -408,12 +409,25 @@ class App(Cmd):
             print('You can try it again later with command renew\n')
         return ret
 
-    def ask_proceed(self, question=None):
+    def ask_proceed(self, question=None, support_non_interactive=False, non_interactive_return=True):
         """Ask if user wants to proceed"""
+        question = question if question is not None else "Do you really want to proceed? (Y/n): "
+
+        if self.noninteractive and not support_non_interactive:
+            raise errors.Error('Non-interactive mode not supported for this prompt')
+
+        if self.noninteractive and support_non_interactive:
+            if self.args.yes:
+                print(question)
+                print('Y' if non_interactive_return else 'n')
+                return non_interactive_return
+            else:
+                raise errors.Error('Non-interactive mode for a prompt without --yes flag')
+
+        # Classic interactive prompt
         confirmation = None
         while confirmation != 'y' and confirmation != 'n':
-            confirmation = raw_input(question if question is not None else "Do you really want to proceed? (Y/n): ").strip().lower()
-
+            confirmation = raw_input(question).strip().lower()
         return confirmation == 'y'
 
     def ask_for_email(self):
@@ -496,6 +510,8 @@ class App(Cmd):
                             help='enables debug mode')
         parser.add_argument('--email', dest='email', default=None,
                             help='email address to use instead of prompting for one')
+        parser.add_argument('--yes', dest='yes', action='store_const', const=True,
+                            help='answers yes to the questions in the non-interactive mode, mainly for init')
 
         parser.add_argument('commands', nargs=argparse.ZERO_OR_MORE, default=[],
                             help='commands to process')
