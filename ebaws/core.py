@@ -41,11 +41,6 @@ class Core(object):
         return CONFIG_DIR + '/' + CONFIG_FILE
 
     @staticmethod
-    def get_config_file_lock_path():
-        """PID of the process working on the file, exclusive write lock"""
-        return CONFIG_DIR + '/' + CONFIG_FILE + '.pid'
-
-    @staticmethod
     def config_file_exists():
         conf_name = Core.get_config_file_path()
         return os.path.isfile(conf_name)
