@@ -152,9 +152,9 @@ aws ec2 describe-snapshots --region $AMI_REGION --snapshot-id $SNAPSHOT_ID
 aws ec2 describe-images --region $AMI_REGION --image-id $AMI_ID --output text
 
 # Create new AMI
-aws ec2 register-image --region $AMI_REGION --name 'EnigmaBridge-EJBCA' \
+aws ec2 register-image --region $AMI_REGION --name 'EnigmaBridge-EJBCA-v2' \
   --block-device-mappings DeviceName=/dev/xvda,Ebs={SnapshotId=${SNAPSHOT_ID}} \
-  --description 'EnigmaBridge integrated EJBCA AMI' \
+  --description 'EnigmaBridge integrated EJBCA AMI version 2' \
   --virtualization-type hvm --architecture x86_64 \
   --root-device-name /dev/xvda
 
