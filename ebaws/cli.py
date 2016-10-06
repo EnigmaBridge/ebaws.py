@@ -45,8 +45,9 @@ class App(Cmd):
 
     def do_usage(self, line):
         """Writes simple usage hints"""
-        print('init  - initializes the EJBCA instance with new identity')
-        print('usage - writes this usage info')
+        print('init   - initializes the EJBCA instance with new identity')
+        print('renew  - renews Lets Encrypt certificate used by EJBCA installation')
+        print('usage  - writes this usage info')
 
     def do_init(self, line):
         """
