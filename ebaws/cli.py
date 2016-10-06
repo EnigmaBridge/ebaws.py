@@ -125,6 +125,9 @@ class App(Cmd):
             # New client registration (new username, password, apikey).
             new_config = reg_svc.new_registration()
 
+            # Custom hostname for EJBCA - not yet supported
+            new_config.ejbca_hostname_custom = False
+
             # Assign a new dynamic domain for the host
             domain_is_ok = False
             domain_ignore = False
@@ -369,6 +372,7 @@ class App(Cmd):
 
             # Is original hostname used in the EJBCA in domains?
             if new_config.ejbca_hostname is not None \
+                    and not new_config.ejbca_hostname_custom \
                     and new_config.ejbca_hostname not in new_config.domains:
                 print("\nWarning! Returned domains do not correspond to the domain used during EJBCA installation %s" % new_config.ejbca_hostname)
                 print("\nEJBCA redeploy has to be performed, this operations is not yet supported")
