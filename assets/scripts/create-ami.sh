@@ -34,7 +34,7 @@ export AWS_ACC=112233445566
 export AWS_ACCESS_KEY_ID=your_access_key_id
 export AWS_SECRET_ACCESS_KEY=your_secret_access_key
 export AMI_REGION=eu-west-1
-export INSTANCE_ID=ec2-metadata -i | cut -d ' ' -f 2
+export INSTANCE_ID=`ec2-metadata -i | cut -d ' ' -f 2`
 export AMI_ID=`ec2-metadata -a | cut -d ' ' -f 2`
 
 # 4. create image (as root)
