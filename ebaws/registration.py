@@ -100,10 +100,10 @@ class Registration(object):
     """
     Takes care about registration process
     """
-    def __init__(self, email=None, eb_config=None, *args, **kwargs):
+    def __init__(self, email=None, eb_config=None, config=None, *args, **kwargs):
         self.email = email
         self.eb_config = eb_config
-        self.config = None
+        self.config = config
         self.key = None
         self.crt = None
         self.key_path = None
@@ -245,7 +245,7 @@ class Registration(object):
         except Exception as e:
             print api_data_reg
             print req.response
-            raise e
+            raise
 
         if resp is None:
             raise InvalidResponse('Response is invalid')
