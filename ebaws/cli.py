@@ -144,6 +144,8 @@ class App(Cmd):
 
                 except Exception as e:
                     domain_ctr += 1
+                    if self.args.debug:
+                        traceback.print_exc()
 
                     if self.noninteractive:
                         if domain_ctr >= self.args.attempts:
@@ -253,7 +255,8 @@ class App(Cmd):
             return self.return_code(0)
 
         except Exception as ex:
-            traceback.print_exc()
+            if self.args.debug:
+                traceback.print_exc()
             print "Exception in the registration process, cannot continue."
 
         return self.return_code(1)
