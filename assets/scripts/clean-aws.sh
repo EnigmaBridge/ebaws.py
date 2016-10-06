@@ -49,6 +49,8 @@ find /root/ejbca.passwords -type f -exec shred -u {} \;
 find /root/ejbca.passwords.old -type f -exec shred -u {} \;
 find /root/ejbcadb.old -type f -exec shred -u {} \;
 /bin/rm /etc/softhsm.conf
+/bin/rm /etc/cron.d/ebaws-renew
+/bin/rm /etc/init.d/ebaws-onboot
 
 find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'web_0*.properties' -exec shred -u {} \;
 find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'install_0*.properties' -exec shred -u {} \;
@@ -68,11 +70,15 @@ find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'install_0*.properties' -exec shr
 /bin/rm /opt/jboss-eap-6.4.0/ejbcadb*
 /bin/rm /opt/jboss-eap-6.4.0/standalone/configuration/keystore/*
 /bin/rm /tmp/jboss-cli.log
+/bin/rm /tmp/jboss-cli_*.log
 /bin/rm /tmp/ant-*.log
 /bin/rm /tmp/tmpcert.p12
 /bin/rm /tmp/certbot.log
+/bin/rm /tmp/certbot_*.log
 /bin/rm /tmp/openssl.log
+/bin/rm /tmp/openssl_*.log
 /bin/rm /tmp/keytool.log
+/bin/rm /tmp/keytool_*.log
 /bin/rm /opt/ejbca_ce_6_3_1_1/p12/*
 find /opt/jboss-eap-6.4.0/standalone/log/ -type f -exec shred -u {} \;
 find /opt/jboss-eap-6.4.0/standalone/configuration/standalone_xml_history/ -type f -exec shred -u {} \;
