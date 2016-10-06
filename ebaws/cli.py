@@ -36,6 +36,7 @@ class App(Cmd):
         Cmd.__init__(self, *args, **kwargs)
         self.core = Core()
         self.args = None
+        self.last_result = 0
 
         self.noninteractive = False
 
@@ -59,14 +60,14 @@ class App(Cmd):
         Previous configuration data is backed up.
         """
         if not self.check_root() or not self.check_pid():
-            return
+            return self.return_code(1)
 
         print "Going to initialize the EB identity"
         print "WARNING! This is a destructive process!"
         print "WARNING! The previous installation will be overwritten.\n"
         should_continue = self.ask_proceed(support_non_interactive=True)
         if not should_continue:
-            return
+            return self.return_code(1)
 
         config = Core.read_configuration()
         if config is not None and config.has_nonempty_config():
@@ -74,7 +75,7 @@ class App(Cmd):
             print "The configuration will be overwritten by a new one (current config will be backed up)\n"
             should_continue = self.ask_proceed(support_non_interactive=True)
             if not should_continue:
-                return
+                return self.return_code(1)
 
             # Backup the old config
             fname = Core.backup_configuration(config)
@@ -101,19 +102,19 @@ class App(Cmd):
                 print("New swap file will be installed in /var")
                 should_continue = self.ask_proceed(support_non_interactive=True)
                 if not should_continue:
-                    return
+                    return self.return_code(1)
 
                 code, swap_name, swap_size = syscfg.create_swap()
                 if code == 0:
                     print("\nNew swap file was created %s %d MB and activated" % (swap_name,int(math.ceil(total_mem/1024/1024))))
                 else:
                     print("\nSwap file could not be created. Please, inspect the problem and try again")
-                    return
+                    return self.return_code(1)
 
                 # Recheck
                 if not syscfg.is_enough_ram():
                     print("Error: still not enough memory. Please, resolve the issue and try again")
-                    return
+                    return self.return_code(1)
                 print("")
 
             # Creates a new RSA key-pair identity
@@ -159,7 +160,7 @@ class App(Cmd):
                     print("\nDomain could not be assigned, installation continues. You can try domain reassign later")
                 else:
                     print("\nDomain could not be assigned, installation aborted")
-                    return
+                    return self.return_code(1)
 
             # Install to the OS
             syscfg.install_onboot_check()
@@ -197,7 +198,7 @@ class App(Cmd):
 
             if ejbca.ejbca_install_result != 0:
                 print("\nEJBCA installation error, please, try again.")
-                return
+                return self.return_code(1)
 
             Core.write_configuration(ejbca.config)
             print("\nEJBCA installed successfully.")
@@ -249,27 +250,30 @@ class App(Cmd):
             if hostname is not None:
                 print("https://%s:8443/ejbca/adminweb/" % hostname)
             print("https://%s:8443/ejbca/adminweb/" % reg_svc.info_loader.ami_public_hostname)
+            return self.return_code(0)
 
         except Exception as ex:
             traceback.print_exc()
             print "Exception in the registration process, cannot continue."
 
+        return self.return_code(1)
+
     def do_renew(self, arg):
         """Renews LetsEncrypt certificates used for the JBoss"""
         if not self.check_root() or not self.check_pid():
-            return
+            return self.return_code(1)
 
         config = Core.read_configuration()
         if config is None or not config.has_nonempty_config():
             print "\nError! Enigma config file not found %s" % (Core.get_config_file_path())
             print " Cannot continue. Have you run init already?\n"
-            return
+            return self.return_code(1)
 
         domains = config.domains
         if domains is None or not isinstance(domains, types.ListType) or len(domains) == 0:
             print "\nError! No domains found in the configuration."
             print " Cannot continue. Did init complete successfully?"
-            return
+            return self.return_code(1)
 
         # If there is no hostname, enrollment probably failed.
         ejbca_host = config.ejbca_hostname
@@ -290,18 +294,18 @@ class App(Cmd):
         else:
             # Renew the certs
             self.le_renew(ejbca)
-        pass
+        return self.return_code(0)
 
     def do_onboot(self, line):
         """Command called by the init script/systemd on boot, takes care about IP re-registration"""
         if not self.check_root() or not self.check_pid():
-            return
+            return self.return_code(1)
 
         config = Core.read_configuration()
         if config is None or not config.has_nonempty_config():
             print "\nError! Enigma config file not found %s" % (Core.get_config_file_path())
             print " Cannot continue. Have you run init already?\n"
-            return
+            return self.return_code(2)
 
         eb_cfg = Core.get_default_eb_config()
         try:
@@ -315,7 +319,7 @@ class App(Cmd):
             ret = reg_svc.load_identity()
             if ret != 0:
                 print("\nError! Could not load identity (key-pair is missing)")
-                return
+                return self.return_code(3)
 
             # Assign a new dynamic domain for the host
             domain_is_ok = False
@@ -351,26 +355,29 @@ class App(Cmd):
                 print("\nDomain could not be assigned. You can try domain reassign later.")
             else:
                 Core.write_configuration(new_config)
+                return self.return_code(0)
 
         except Exception as ex:
             traceback.print_exc()
             print "Exception in the domain registration process, cannot continue."
 
+        return self.return_code(1)
+
     def do_undeploy_ejbca(self, line):
         """Undeploys EJBCA without any backup left"""
         if not self.check_root() or not self.check_pid():
-            return
+            return self.return_code(1)
 
         print "Going to undeploy and remove EJBCA from the system"
         print "WARNING! This is a destructive process!"
         should_continue = self.ask_proceed(support_non_interactive=True)
         if not should_continue:
-            return
+            return self.return_code(1)
 
         print "WARNING! This is the last chance."
         should_continue = self.ask_proceed(support_non_interactive=True)
         if not should_continue:
-            return
+            return self.return_code(1)
 
         ejbca = Ejbca(print_output=True)
 
@@ -379,6 +386,7 @@ class App(Cmd):
         ejbca.jboss_restart()
 
         print "\nDone."
+        return self.return_code(0)
 
     def le_install(self, ejbca):
         print('\nInstalling LetsEncrypt certificate for: %s' % ejbca.hostname)
@@ -408,6 +416,10 @@ class App(Cmd):
             print('\nFailed to renew LetsEncrypt certificate, code=%s.' % ret)
             print('You can try it again later with command renew\n')
         return ret
+
+    def return_code(self, code=0):
+        self.last_result = code
+        return code
 
     def ask_proceed(self, question=None, support_non_interactive=False, non_interactive_return=True):
         """Ask if user wants to proceed"""
@@ -530,6 +542,10 @@ class App(Cmd):
 
         self.cmdloop()
         sys.argv = args_src
+
+        # Noninteractive - return the last result from the operation (for scripts)
+        if self.noninteractive:
+            sys.exit(self.last_result)
 
 
 def main():
