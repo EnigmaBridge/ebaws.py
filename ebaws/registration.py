@@ -262,13 +262,13 @@ class Registration(object):
         Attempts to refresh previously assigned domain after AWS restart
         :return:
         """
-        api_data_req = {
+        api_data_req_body = {
             'ipv4': self.info_loader.ami_public_ip,
             'username': self.config.username,
             'apikey': self.config.apikey
         }
 
-        req = GetDomainChallengeRequest(api_data=api_data_req, env=ENVIRONMENT_DEVELOPMENT, config=self.eb_config)
+        req = GetDomainChallengeRequest(api_data=api_data_req_body, env=ENVIRONMENT_DEVELOPMENT, config=self.eb_config)
         resp = req.call()
 
         if 'authentication' not in resp:
