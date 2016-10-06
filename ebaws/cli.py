@@ -421,6 +421,21 @@ class App(Cmd):
         confirmation = False
         var = None
 
+        # Take email from the command line
+        if self.args.email is not None:
+            self.args.email = self.args.email.strip()
+            print('Using email passed as an argument: %s' % self.args.email)
+            if len(self.args.email) > 0 and not util.safe_email(self.args.email):
+                print('Email you have entered is invalid, cannot continue')
+                raise ValueError('Invalid email address')
+            else:
+                return self.args.email
+
+        # Noninteractive mode - use empty email address if got here
+        if self.noninteractive:
+            return ''
+
+        # Asking for email - interactive
         while not confirmation:
             var = raw_input("Please enter your email address [empty]: ").strip()
             question = None
@@ -479,6 +494,8 @@ class App(Cmd):
                             help='number of attempts in non-interactive mode')
         parser.add_argument('--debug', dest='debug', action='store_const', const=True,
                             help='enables debug mode')
+        parser.add_argument('--email', dest='email', default=None,
+                            help='email address to use instead of prompting for one')
 
         parser.add_argument('commands', nargs=argparse.ZERO_OR_MORE, default=[],
                             help='commands to process')
