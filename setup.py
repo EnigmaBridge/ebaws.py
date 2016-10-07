@@ -18,7 +18,8 @@ install_requires = [
     'sarge>=0.1.4',
     'psutil',
     'pid>=2.0.1',
-    'six'
+    'six',
+    'future'
 ]
 
 # env markers in extras_require cause problems with older pip: #517
