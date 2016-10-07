@@ -27,6 +27,9 @@ from sarge import run, Capture, Feeder
 from datetime import datetime
 import time
 import types
+import socketserver
+import threading
+
 
 logger = logging.getLogger(__name__)
 
@@ -688,4 +691,75 @@ def safe_email(email):
 def get_utc_sec():
     return time.time()
 
+
+def test_port_open(host='127.0.0.1', port=80, timeout=15, attempts=3):
+    """
+    Test if the given port is open on the TCP.
+
+    :param host:
+    :param port:
+    :param attempts:
+    :param timeout:
+    :return:
+    """
+    idx = 0
+    while idx < attempts:
+        try:
+            sock = socket.create_connection((host, port), timeout=timeout)
+            sock.close()
+            return True
+
+        except:
+            time.sleep(1)
+            pass
+
+        finally:
+            idx += 1
+
+    return False
+
+
+class DummyTCPHandler(socketserver.BaseRequestHandler):
+    """Handler for a dummy socket server for firewall testing"""
+    def handle(self):
+        self.request.recv(1024).strip()
+    pass
+
+
+class DummyTCPServer(object):
+    """
+    Dummy TCP server bound on the specific socket.
+    Server is started in a new thread so it does not block.
+    """
+    def __init__(self, address):
+        self.address = address
+        self.server = socketserver.TCPServer(self.address, DummyTCPHandler)
+        self.thread = None
+
+    def start(self):
+        """
+        Starts the server in the separate thread (async)
+        :return:
+        """
+        self.thread = threading.Thread(target=self.server.serve_forever)
+        self.thread.setDaemon(True)
+        self.thread.start()
+        return self
+
+    def close(self):
+        """
+        Shutsdown the server
+        :return:
+        """
+        try:
+            self.server.shutdown()
+            self.server.server_close()
+        except:
+            pass
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
