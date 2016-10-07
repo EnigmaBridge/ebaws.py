@@ -23,6 +23,8 @@ class Ejbca(object):
     https://www.ejbca.org/docs/installation.html#Install
     """
 
+    PORT = 8443
+
     # Default home dirs
     EJBCA_HOME = '/opt/ejbca_ce_6_3_1_1'
     JBOSS_HOME = '/opt/jboss-eap-6.4.0'
@@ -720,7 +722,11 @@ class Ejbca(object):
         self.jboss_reload()
         return self.ejbca_install_result
 
-
-
+    def test_port_open(self, host, timeout=5, attempts=3):
+        """
+        Tests if port is open to the public
+        :return:
+        """
+        return util.test_port_open(host=host, port=self.PORT, timeout=timeout, attempts=attempts)
 
 
