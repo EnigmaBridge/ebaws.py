@@ -11,7 +11,7 @@ import util
 import errors
 from consts import *
 from core import Core
-from registration import Registration
+from registration import Registration, InfoLoader
 from softhsm import SoftHsmV1Config
 from ejbca import Ejbca
 from ebsysconfig import SysConfig
@@ -25,6 +25,10 @@ class App(Cmd):
                      '\n    For help, type usage\n' + \
                      '\n    init - initializes the EJBCA instance\n' + \
             '-'*80
+
+    PROCEED_YES = 'yes'
+    PROCEED_NO = 'no'
+    PROCEED_QUIT = 'quit'
 
     def __init__(self, *args, **kwargs):
         """
@@ -116,6 +120,11 @@ class App(Cmd):
                     print("Error: still not enough memory. Please, resolve the issue and try again")
                     return self.return_code(1)
                 print("")
+
+            # Lets encrypt reachability test
+            port_ok = self.le_check_port(critical=False)
+            if not port_ok:
+                return self.return_code(10)
 
             # Creates a new RSA key-pair identity
             # Identity relates to bound DNS names and username.
@@ -254,8 +263,15 @@ class App(Cmd):
             print("Export password: %s" % ejbca.superadmin_pass)
             print("\nOnce you import p12 file to your browser you can connect to the admin interface at")
             if hostname is not None:
-                print("https://%s:8443/ejbca/adminweb/" % hostname)
-            print("https://%s:8443/ejbca/adminweb/" % reg_svc.info_loader.ami_public_hostname)
+                print("https://%s:%d/ejbca/adminweb/" % (hostname, ejbca.PORT))
+            print("https://%s:%d/ejbca/adminweb/" % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
+
+            # Test if EJBCA is reachable on outer interface
+            ejbca_open = ejbca.test_port_open(host=reg_svc.info_loader.ami_public_ip)
+            if not ejbca_open:
+                print("\nWarning! EJBCA port %d is not reachable on the public IP %s" % (ejbca.PORT, reg_svc.info_loader.ami_public_ip))
+                print("If you cannot connect to EJBCA interface, consider reconfiguring the AWS Security Groups")
+
             return self.return_code(0)
 
         except Exception as ex:
@@ -293,6 +309,11 @@ class App(Cmd):
 
         if not enroll_new_cert:
             enroll_new_cert = le_test.is_certificate_ready(domain=ejbca_host) != 0
+
+        # Test LetsEncrypt port
+        port_ok = self.le_check_port(critical=True)
+        if not port_ok:
+            return self.return_code(10)
 
         ret = 0
         ejbca.hostname = ejbca_host
@@ -427,6 +448,45 @@ class App(Cmd):
         print "\nDone."
         return self.return_code(0)
 
+    def le_check_port(self, ip=None, letsencrypt=None, critical=False):
+        if ip is None:
+            info = InfoLoader()
+            info.load()
+            ip = info.ami_public_ip
+
+        if letsencrypt is None:
+            letsencrypt = LetsEncrypt()
+
+        print('\nChecking if port %d is open for LetsEncrypt, ip: %s' % (letsencrypt.PORT, ip))
+        ok = letsencrypt.test_port_open(ip=ip)
+        if ok:
+            return True
+
+        print('\nLetsEncrypt port %d is firewalled, please make sure it is reachable on the public interface %s' % (letsencrypt.PORT, ip))
+        print('Please check AWS Security Groups')
+
+        if self.noninteractive:
+            return False
+
+        if critical:
+            return False
+
+        else:
+            proceed_option = self.PROCEED_YES
+            while proceed_option == self.PROCEED_YES:
+                proceed_option = self.ask_proceed_quit("Do you want to try again? (Y / n = continue without LetsEncrypt / q=quit): ")
+                if proceed_option == self.PROCEED_NO:
+                    return True
+                elif proceed_option == self.PROCEED_QUIT:
+                    return False
+
+                # Test again
+                ok = letsencrypt.test_port_open(ip=ip)
+                if ok:
+                    return True
+            pass
+        pass
+
     def le_install(self, ejbca):
         print('\nInstalling LetsEncrypt certificate for: %s' % ejbca.hostname)
         ret = ejbca.le_enroll()
@@ -467,9 +527,10 @@ class App(Cmd):
         self.last_result = code
         return code
 
-    def ask_proceed(self, question=None, support_non_interactive=False, non_interactive_return=True):
+    def ask_proceed_quit(self, question=None, support_non_interactive=False, non_interactive_return=PROCEED_YES, quit_enabled=True):
         """Ask if user wants to proceed"""
-        question = question if question is not None else "Do you really want to proceed? (Y/n): "
+        opts = 'Y/n/q' if quit_enabled else 'Y/n'
+        question = question if question is not None else ("Do you really want to proceed? (%s): " % opts)
 
         if self.noninteractive and not support_non_interactive:
             raise errors.Error('Non-interactive mode not supported for this prompt')
@@ -477,16 +538,38 @@ class App(Cmd):
         if self.noninteractive and support_non_interactive:
             if self.args.yes:
                 print(question)
-                print('Y' if non_interactive_return else 'n')
+                if non_interactive_return == self.PROCEED_YES:
+                    print 'Y'
+                elif non_interactive_return == self.PROCEED_NO:
+                    print 'n'
+                elif non_interactive_return == self.PROCEED_QUIT:
+                    print 'q'
+                else:
+                    raise ValueError('Unknown default value')
+
                 return non_interactive_return
             else:
                 raise errors.Error('Non-interactive mode for a prompt without --yes flag')
 
         # Classic interactive prompt
         confirmation = None
-        while confirmation != 'y' and confirmation != 'n':
+        while confirmation != 'y' and confirmation != 'n' and confirmation != 'q':
             confirmation = raw_input(question).strip().lower()
-        return confirmation == 'y'
+        if confirmation == 'y':
+            return self.PROCEED_YES
+        elif confirmation == 'n':
+            return self.PROCEED_NO
+        else:
+            return self.PROCEED_QUIT
+
+    def ask_proceed(self, question=None, support_non_interactive=False, non_interactive_return=True):
+        """Ask if user wants to proceed"""
+        ret = self.ask_proceed_quit(question=question,
+                                    support_non_interactive=support_non_interactive,
+                                    non_interactive_return=self.PROCEED_YES if non_interactive_return else self.PROCEED_NO,
+                                    quit_enabled=False)
+
+        return ret == self.PROCEED_YES
 
     def ask_for_email(self):
         """Asks user for an email address"""
