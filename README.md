@@ -15,6 +15,12 @@ pip install pyOpenSSL==0.13
 pip install cryptography
 ```
 
+You may need to install some deps for the python packages
+
+```
+yum install gcc g++ openssl-devel libffi-devel dialog
+```
+
 
 [100-named-groups]: https://community.letsencrypt.org/t/certbot-auto-fails-while-setting-up-virtual-environment-complains-about-package-hashes/20529/18
 
