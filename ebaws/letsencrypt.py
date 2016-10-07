@@ -159,6 +159,7 @@ class LetsEncrypt(object):
     LetsEncrypt integration
     """
 
+    PORT = 443
     CERTBOT_PATH = '/usr/local/bin/certbot'
     LE_CERT_PATH = '/etc/letsencrypt/live'
     CERTBOT_LOG = '/tmp/certbot.log'
@@ -263,6 +264,23 @@ class LetsEncrypt(object):
         except:
             return 100
 
+    def test_port_open(self, ip=None, timeout=5, attempts=3):
+        """
+        Tests if 443 port is open on the local host - required for Certbot to work - LetsEncrypt
+        verification.
+        For this test a dummy TCP server is started.
+
+        :param ip:
+        :param timeout:
+        :param attempts:
+        :return:
+        """
+        server = util.DummyTCPServer(('0.0.0.0', self.PORT))
+        with server.start():
+            time.sleep(0.5)
+            return util.test_port_open(ip, self.PORT, timeout=timeout, attempts=attempts)
+        pass
+
     def print_error(self, msg):
         if self.print_output:
             sys.stderr.write(msg)
@@ -293,3 +311,4 @@ class LetsEncrypt(object):
         if len(email) > 0:
             cmd = '--email ' + email
         return cmd
+
