@@ -463,7 +463,7 @@ class App(Cmd):
             return True
 
         print('\nLetsEncrypt port %d is firewalled, please make sure it is reachable on the public interface %s' % (letsencrypt.PORT, ip))
-        print('Please check AWS Security Groups')
+        print('Please check AWS Security Groups - Inbound firewall rules for TCP port %d' % (letsencrypt.PORT))
 
         if self.noninteractive:
             return False
