@@ -101,6 +101,11 @@ class App(Cmd):
             syscfg = SysConfig(print_output=True)
             hostname = None
 
+            # Check if we have EJBCA resources on the drive
+            if not ejbca.test_environment():
+                print('\nError: Environment is damaged, some assets are missing for the EJBCA installation. Cannot continue.')
+                return self.return_code(1)
+
             # Determine if we have enough RAM for the work.
             # If not, a new swap file is created so the system has at least 2GB total memory space
             # for compilation & deployment.

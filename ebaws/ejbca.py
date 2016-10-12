@@ -729,4 +729,12 @@ class Ejbca(object):
         """
         return util.test_port_open(host=host, port=self.PORT, timeout=timeout, attempts=attempts)
 
+    def test_environment(self):
+        """
+        Tests if the host we run at has necessary assets (e.g., jboss dir, ejbca dir)
+        Very light check, but prevents from running and failing on hosts without our jboss installation.
+        :return: true if env is OK (installation could finish successfully)
+        """
+        return os.path.exists(self.get_ejbca_home()) \
+               and os.path.exists(self.get_jboss_home())
 
