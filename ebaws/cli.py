@@ -71,7 +71,7 @@ class App(Cmd):
             return self.return_code(1)
 
         print "Going to install EJBCA and initialize EnigmaBridge identity"
-        
+
         config = Core.read_configuration()
         if config is not None and config.has_nonempty_config():
             print "WARNING! This is a destructive process!"
@@ -594,6 +594,11 @@ class App(Cmd):
         # Noninteractive mode - use empty email address if got here
         if self.noninteractive:
             return ''
+
+        print('We need your email address for:\n'
+              '   a) identity verification in case of recovery / support \n'
+              '   b) LetsEncrypt certificate registration')
+        print('It\'s optional but we highly recommend to enter a valid e-mail address (especially on a production system)\n')
 
         # Asking for email - interactive
         while not confirmation:
