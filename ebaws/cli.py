@@ -661,11 +661,11 @@ class App(Cmd):
 
         # Parse our argument list
         parser = argparse.ArgumentParser(description='EnigmaBridge AWS client')
-        parser.add_argument('-n, --non-interactive', dest='noninteractive', action='store_const', const=True,
+        parser.add_argument('-n', '--non-interactive', dest='noninteractive', action='store_const', const=True,
                             help='non-interactive mode of operation, command line only')
-        parser.add_argument('-r, --attempts', dest='attempts', type=int, default=3,
+        parser.add_argument('-r', '--attempts', dest='attempts', type=int, default=3,
                             help='number of attempts in non-interactive mode')
-        parser.add_argument('-l, --pid-lock', dest='pidlock', type=int, default=-1,
+        parser.add_argument('-l','--pid-lock', dest='pidlock', type=int, default=-1,
                             help='number of attempts for pidlock acquire')
         parser.add_argument('--debug', dest='debug', action='store_const', const=True,
                             help='enables debug mode')
