@@ -55,6 +55,10 @@ class App(Cmd):
         print('renew  - renews Lets Encrypt certificate used by EJBCA installation')
         print('usage  - writes this usage info')
 
+    def do_install(self, line):
+        """Alias for init"""
+        self.do_init(line)
+
     def do_init(self, line):
         """
         Initializes the EB client machine, new identity is assigned.
