@@ -209,7 +209,7 @@ class App(Cmd):
 
             # EJBCA configuration
             print('Going to install EJBCA')
-            print('  This may take 5-15 minutes, please, do not interrupt the installation')
+            print('  This may take 15 minutes or less. Please, do not interrupt the installation')
             print('  and wait until the process completes.\n')
 
             ejbca.set_config(new_config)
