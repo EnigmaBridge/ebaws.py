@@ -468,6 +468,7 @@ class App(Cmd):
             return True
 
         print('\nLetsEncrypt port %d is firewalled, please make sure it is reachable on the public interface %s' % (letsencrypt.PORT, ip))
+        print('Without port 443 enabled LetsEncrypt cannot verify you own the domain so certificate won\'t be issued.')
         print('Please check AWS Security Groups - Inbound firewall rules for TCP port %d' % (letsencrypt.PORT))
 
         if self.noninteractive:
