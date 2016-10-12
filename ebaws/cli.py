@@ -264,7 +264,7 @@ class App(Cmd):
             # Finalize, P12 file & final instructions
             new_p12 = ejbca.copy_p12_file()
             print('\nDownload p12 file %s' % new_p12)
-            print(' e.g.: scp %s:%s .' % (reg_svc.info_loader.ami_public_hostname, new_p12))
+            print(' e.g.: scp -i <your amazon PEM key> ec2-user@%s:%s .' % (reg_svc.info_loader.ami_public_hostname, new_p12))
             print('Export password: %s' % ejbca.superadmin_pass)
             print('\nOnce you import p12 file to your browser you can connect to the admin interface at')
             if hostname is not None:
