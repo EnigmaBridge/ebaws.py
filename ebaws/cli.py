@@ -635,6 +635,7 @@ class App(Cmd):
             try:
                 first_retry = False
                 attempt_ctr += 1
+
                 self.core.pidlock_create()
                 if attempt_ctr > 1:
                     print('\nPID lock acquired')
@@ -646,6 +647,10 @@ class App(Cmd):
             except pid.PidFileError as e:
                 pidnum = self.core.pidlock_get_pid()
                 print('\nError: CLI already running in exclusive mode by PID: %d' % pidnum)
+
+                if self.args.pidlock >= 0 and attempt_ctr > self.args.pidlock:
+                    return False
+
                 print('Next check will be performed in few seconds. Waiting...')
                 time.sleep(3)
         pass
@@ -660,6 +665,8 @@ class App(Cmd):
                             help='non-interactive mode of operation, command line only')
         parser.add_argument('-r, --attempts', dest='attempts', type=int, default=3,
                             help='number of attempts in non-interactive mode')
+        parser.add_argument('-l, --pid-lock', dest='pidlock', type=int, default=-1,
+                            help='number of attempts for pidlock acquire')
         parser.add_argument('--debug', dest='debug', action='store_const', const=True,
                             help='enables debug mode')
         parser.add_argument('--force', dest='force', action='store_const', const=True, default=False,
