@@ -18,6 +18,7 @@ install_requires = [
     'sarge>=0.1.4',
     'psutil',
     'pid>=2.0.1',
+    'blessings>=1.6',
     'six',
     'future'
 ]
