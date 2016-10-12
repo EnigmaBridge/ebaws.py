@@ -70,25 +70,25 @@ class App(Cmd):
         if not self.check_root() or not self.check_pid():
             return self.return_code(1)
 
-        print "Going to install EJBCA and initialize EnigmaBridge identity"
+        print('Going to install EJBCA and initialize EnigmaBridge identity')
 
         config = Core.read_configuration()
         if config is not None and config.has_nonempty_config():
-            print "WARNING! This is a destructive process!"
-            print "WARNING! The previous installation will be overwritten.\n"
+            print('WARNING! This is a destructive process!')
+            print('WARNING! The previous installation will be overwritten.\n')
             should_continue = self.ask_proceed(support_non_interactive=True)
             if not should_continue:
                 return self.return_code(1)
 
-            print "\nWARNING! Configuration already exists in the file %s" % (Core.get_config_file_path())
-            print "The configuration will be overwritten by a new one (current config will be backed up)\n"
+            print('\nWARNING! Configuration already exists in the file %s' % (Core.get_config_file_path()))
+            print('The configuration will be overwritten by a new one (current config will be backed up)\n')
             should_continue = self.ask_proceed(support_non_interactive=True)
             if not should_continue:
                 return self.return_code(1)
 
             # Backup the old config
             fname = Core.backup_configuration(config)
-            print("Configuration has been backed up: %s\n" % fname)
+            print('Configuration has been backed up: %s\n' % fname)
 
         # Reinit
         email = self.ask_for_email()
@@ -105,26 +105,26 @@ class App(Cmd):
             # for compilation & deployment.
             if not syscfg.is_enough_ram():
                 total_mem = syscfg.get_total_usable_mem()
-                print("\nTotal memory in the system is low: %d MB, installation requires at least 2GB"
+                print('\nTotal memory in the system is low: %d MB, installation requires at least 2GB'
                       % int(math.ceil(total_mem/1024/1024)))
 
-                print("New swap file will be installed in /var")
+                print('New swap file will be installed in /var')
                 should_continue = self.ask_proceed(support_non_interactive=True)
                 if not should_continue:
                     return self.return_code(1)
 
                 code, swap_name, swap_size = syscfg.create_swap()
                 if code == 0:
-                    print("\nNew swap file was created %s %d MB and activated" % (swap_name,int(math.ceil(total_mem/1024/1024))))
+                    print('\nNew swap file was created %s %d MB and activated' % (swap_name,int(math.ceil(total_mem/1024/1024))))
                 else:
-                    print("\nSwap file could not be created. Please, inspect the problem and try again")
+                    print('\nSwap file could not be created. Please, inspect the problem and try again')
                     return self.return_code(1)
 
                 # Recheck
                 if not syscfg.is_enough_ram():
-                    print("Error: still not enough memory. Please, resolve the issue and try again")
+                    print('Error: still not enough memory. Please, resolve the issue and try again')
                     return self.return_code(1)
-                print("")
+                print('')
 
             # Lets encrypt reachability test
             port_ok = self.le_check_port(critical=False)
@@ -154,10 +154,10 @@ class App(Cmd):
                     if new_config.domains is not None and len(new_config.domains) > 0:
                         domain_is_ok = True
                         hostname = new_config.domains[0]
-                        print("\nNew domains registered for this host: ")
+                        print('\nNew domains registered for this host: ')
                         for domain in new_config.domains:
-                            print("  - %s" % domain)
-                        print("")
+                            print('  - %s' % domain)
+                        print('')
 
                 except Exception as e:
                     domain_ctr += 1
@@ -168,17 +168,17 @@ class App(Cmd):
                         if domain_ctr >= self.args.attempts:
                             break
                     else:
-                        print("\nError during domain registration, no dynamic domain will be assigned")
-                        should_continue = self.ask_proceed("Do you want to try again? (Y/n): ")
+                        print('\nError during domain registration, no dynamic domain will be assigned')
+                        should_continue = self.ask_proceed('Do you want to try again? (Y/n): ')
                         if not should_continue:
                             break
 
             # Is it OK if domain assignment failed?
             if not domain_is_ok:
                 if domain_ignore:
-                    print("\nDomain could not be assigned, installation continues. You can try domain reassign later")
+                    print('\nDomain could not be assigned, installation continues. You can try domain reassign later')
                 else:
-                    print("\nDomain could not be assigned, installation aborted")
+                    print('\nDomain could not be assigned, installation aborted')
                     return self.return_code(1)
 
             # Install to the OS
@@ -187,40 +187,40 @@ class App(Cmd):
 
             # Dump config & SoftHSM
             conf_file = Core.write_configuration(new_config)
-            print("New configuration was written to: %s\n" % conf_file)
+            print('New configuration was written to: %s\n' % conf_file)
 
             # SoftHSMv1 reconfigure
             soft_config_backup_location = soft_config.backup_current_config_file()
-            print("SoftHSMv1 configuration has been backed up to: %s" % soft_config_backup_location)
+            print('SoftHSMv1 configuration has been backed up to: %s' % soft_config_backup_location)
 
             soft_config.configure(new_config)
             soft_config_file = soft_config.write_config()
 
-            print("New SoftHSMv1 configuration has been written to: %s\n" % soft_config_file)
+            print('New SoftHSMv1 configuration has been written to: %s\n' % soft_config_file)
 
             # Init the token
             backup_dir = soft_config.backup_previous_token_dir()
             if backup_dir is not None:
-                print("SoftHSMv1 previous token database moved to: %s" % backup_dir)
+                print('SoftHSMv1 previous token database moved to: %s' % backup_dir)
 
             out, err = soft_config.init_token(user=ejbca.JBOSS_USER)
-            print("SoftHSMv1 initialization: %s" % out)
+            print('SoftHSMv1 initialization: %s' % out)
 
             # EJBCA configuration
-            print("Going to install EJBCA")
-            print("  This may take 5-15 minutes, please, do not interrupt the installation")
-            print("  and wait until the process completes.\n")
+            print('Going to install EJBCA')
+            print('  This may take 5-15 minutes, please, do not interrupt the installation')
+            print('  and wait until the process completes.\n')
 
             ejbca.set_config(new_config)
             ejbca.set_hostname(hostname)
             ejbca.configure()
 
             if ejbca.ejbca_install_result != 0:
-                print("\nEJBCA installation error, please, try again.")
+                print('\nEJBCA installation error, please, try again.')
                 return self.return_code(1)
 
             Core.write_configuration(ejbca.config)
-            print("\nEJBCA installed successfully.")
+            print('\nEJBCA installed successfully.')
 
             # Generate new keys
             print('\nGoing to generate EnigmaBridge keys in the crypto token:')
@@ -263,26 +263,26 @@ class App(Cmd):
 
             # Finalize, P12 file & final instructions
             new_p12 = ejbca.copy_p12_file()
-            print("\nDownload p12 file %s" % new_p12)
-            print(" e.g.: scp %s:%s ." % (reg_svc.info_loader.ami_public_hostname, new_p12))
-            print("Export password: %s" % ejbca.superadmin_pass)
-            print("\nOnce you import p12 file to your browser you can connect to the admin interface at")
+            print('\nDownload p12 file %s' % new_p12)
+            print(' e.g.: scp %s:%s .' % (reg_svc.info_loader.ami_public_hostname, new_p12))
+            print('Export password: %s' % ejbca.superadmin_pass)
+            print('\nOnce you import p12 file to your browser you can connect to the admin interface at')
             if hostname is not None:
-                print("https://%s:%d/ejbca/adminweb/" % (hostname, ejbca.PORT))
-            print("https://%s:%d/ejbca/adminweb/" % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
+                print('https://%s:%d/ejbca/adminweb/' % (hostname, ejbca.PORT))
+            print('https://%s:%d/ejbca/adminweb/' % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
 
             # Test if EJBCA is reachable on outer interface
             ejbca_open = ejbca.test_port_open(host=reg_svc.info_loader.ami_public_ip)
             if not ejbca_open:
-                print("\nWarning! EJBCA port %d is not reachable on the public IP %s" % (ejbca.PORT, reg_svc.info_loader.ami_public_ip))
-                print("If you cannot connect to EJBCA interface, consider reconfiguring the AWS Security Groups")
+                print('\nWarning! EJBCA port %d is not reachable on the public IP %s' % (ejbca.PORT, reg_svc.info_loader.ami_public_ip))
+                print('If you cannot connect to EJBCA interface, consider reconfiguring the AWS Security Groups')
 
             return self.return_code(0)
 
         except Exception as ex:
             if self.args.debug:
                 traceback.print_exc()
-            print "Exception in the registration process, cannot continue."
+            print('Exception in the registration process, cannot continue.')
 
         return self.return_code(1)
 
@@ -293,14 +293,14 @@ class App(Cmd):
 
         config = Core.read_configuration()
         if config is None or not config.has_nonempty_config():
-            print "\nError! Enigma config file not found %s" % (Core.get_config_file_path())
-            print " Cannot continue. Have you run init already?\n"
+            print('\nError! Enigma config file not found %s' % (Core.get_config_file_path()))
+            print(' Cannot continue. Have you run init already?\n')
             return self.return_code(1)
 
         domains = config.domains
         if domains is None or not isinstance(domains, types.ListType) or len(domains) == 0:
-            print "\nError! No domains found in the configuration."
-            print " Cannot continue. Did init complete successfully?"
+            print('\nError! No domains found in the configuration.')
+            print(' Cannot continue. Did init complete successfully?')
             return self.return_code(1)
 
         # If there is no hostname, enrollment probably failed.
@@ -337,8 +337,8 @@ class App(Cmd):
 
         config = Core.read_configuration()
         if config is None or not config.has_nonempty_config():
-            print "\nError! Enigma config file not found %s" % (Core.get_config_file_path())
-            print " Cannot continue. Have you run init already?\n"
+            print('\nError! Enigma config file not found %s' % (Core.get_config_file_path()))
+            print(' Cannot continue. Have you run init already?\n')
             return self.return_code(2)
 
         eb_cfg = Core.get_default_eb_config()
@@ -346,24 +346,24 @@ class App(Cmd):
             reg_svc = Registration(email=config.email, eb_config=eb_cfg, config=config, debug=self.args.debug)
             domains = config.domains
             if domains is not None and isinstance(domains, types.ListType) and len(domains) > 0:
-                print("\nDomains currently registered: ")
+                print('\nDomains currently registered: ')
                 for dom in config.domains:
-                    print("  - %s" % dom)
-                print("")
+                    print('  - %s' % dom)
+                print('')
 
             if config.ejbca_hostname is not None:
-                print("Domain used for EJBCA: %s\n" % config.ejbca_hostname)
+                print('Domain used for EJBCA: %s\n' % config.ejbca_hostname)
 
             # Identity load (keypair)
             ret = reg_svc.load_identity()
             if ret != 0:
-                print("\nError! Could not load identity (key-pair is missing)")
+                print('\nError! Could not load identity (key-pair is missing)')
                 return self.return_code(3)
 
             # IP has changed?
             if config.last_ipv4 is not None:
-                print("Last IPv4 used for domain registration: %s" % config.last_ipv4)
-            print("Current IPv4: %s" % reg_svc.info_loader.ami_public_ip)
+                print('Last IPv4 used for domain registration: %s' % config.last_ipv4)
+            print('Current IPv4: %s' % reg_svc.info_loader.ami_public_ip)
 
             # Assign a new dynamic domain for the host
             domain_is_ok = False
@@ -375,28 +375,28 @@ class App(Cmd):
 
                     if new_config.domains is not None and len(new_config.domains) > 0:
                         domain_is_ok = True
-                        print("\nNew domains registered for this host: ")
+                        print('\nNew domains registered for this host: ')
                         for domain in new_config.domains:
-                            print("  - %s" % domain)
-                        print("")
+                            print('  - %s' % domain)
+                        print('')
 
                 except Exception as e:
                     domain_ctr += 1
                     if self.args.debug:
                         traceback.print_exc()
 
-                    print("\nError during domain registration, no dynamic domain will be assigned")
+                    print('\nError during domain registration, no dynamic domain will be assigned')
                     if self.noninteractive:
                         if domain_ctr >= self.args.attempts:
                             break
                     else:
-                        should_continue = self.ask_proceed("Do you want to try again? (Y/n): ")
+                        should_continue = self.ask_proceed('Do you want to try again? (Y/n): ')
                         if not should_continue:
                             break
 
             # Is it OK if domain assignment failed?
             if not domain_is_ok:
-                print("\nDomain could not be assigned. You can try domain reassign later.")
+                print('\nDomain could not be assigned. You can try domain reassign later.')
                 return self.return_code(1)
 
             new_config.last_ipv4 = reg_svc.info_loader.ami_public_ip
@@ -405,27 +405,27 @@ class App(Cmd):
             if new_config.ejbca_hostname is not None \
                     and not new_config.ejbca_hostname_custom \
                     and new_config.ejbca_hostname not in new_config.domains:
-                print("\nWarning! Returned domains do not correspond to the domain used during EJBCA installation %s" % new_config.ejbca_hostname)
-                print("\nEJBCA redeploy has to be performed, this operations is not yet supported")
+                print('\nWarning! Returned domains do not correspond to the domain used during EJBCA installation %s' % new_config.ejbca_hostname)
+                print('\nEJBCA redeploy has to be performed, this operations is not yet supported')
 
             Core.write_configuration(new_config)
             return self.return_code(0)
 
         except Exception as ex:
             traceback.print_exc()
-            print "Exception in the domain registration process, cannot continue."
+            print('Exception in the domain registration process, cannot continue.')
 
         return self.return_code(1)
 
     def do_change_hostname(self, line):
         """Changes hostname of the EJBCA installation"""
-        print("This functionality is not yet implemented")
-        print("Basically, its needed:\n"
-              " - edit conf/web.properties and change hostname there\n"
-              " - ant deployear in EJBCA to redeploy EJBCA to JBoss with new settings (preserves DB)\n"
-              " - edit /etc/enigma/config.json ejbca_hostname field\n"
-              " - edit /etc/enigma/config.json ejbca_hostname_custom to true\n"
-              " - call renew command")
+        print('This functionality is not yet implemented')
+        print('Basically, its needed:\n'
+              ' - edit conf/web.properties and change hostname there\n'
+              ' - ant deployear in EJBCA to redeploy EJBCA to JBoss with new settings (preserves DB)\n'
+              ' - edit /etc/enigma/config.json ejbca_hostname field\n'
+              ' - edit /etc/enigma/config.json ejbca_hostname_custom to true\n'
+              ' - call renew command')
         return self.return_code(1)
 
     def do_undeploy_ejbca(self, line):
@@ -433,24 +433,24 @@ class App(Cmd):
         if not self.check_root() or not self.check_pid():
             return self.return_code(1)
 
-        print "Going to undeploy and remove EJBCA from the system"
-        print "WARNING! This is a destructive process!"
+        print('Going to undeploy and remove EJBCA from the system')
+        print('WARNING! This is a destructive process!')
         should_continue = self.ask_proceed(support_non_interactive=True)
         if not should_continue:
             return self.return_code(1)
 
-        print "WARNING! This is the last chance."
+        print('WARNING! This is the last chance.')
         should_continue = self.ask_proceed(support_non_interactive=True)
         if not should_continue:
             return self.return_code(1)
 
         ejbca = Ejbca(print_output=True)
 
-        print " - Undeploying EJBCA from JBoss"
+        print(' - Undeploying EJBCA from JBoss')
         ejbca.undeploy()
         ejbca.jboss_restart()
 
-        print "\nDone."
+        print('\nDone.')
         return self.return_code(0)
 
     def le_check_port(self, ip=None, letsencrypt=None, critical=False):
@@ -480,7 +480,7 @@ class App(Cmd):
         else:
             proceed_option = self.PROCEED_YES
             while proceed_option == self.PROCEED_YES:
-                proceed_option = self.ask_proceed_quit("Do you want to try again? (Y / n = continue without LetsEncrypt / q=quit): ")
+                proceed_option = self.ask_proceed_quit('Do you want to try again? (Y / n = continue without LetsEncrypt / q=quit): ')
                 if proceed_option == self.PROCEED_NO:
                     return True
                 elif proceed_option == self.PROCEED_QUIT:
@@ -536,7 +536,7 @@ class App(Cmd):
     def ask_proceed_quit(self, question=None, support_non_interactive=False, non_interactive_return=PROCEED_YES, quit_enabled=True):
         """Ask if user wants to proceed"""
         opts = 'Y/n/q' if quit_enabled else 'Y/n'
-        question = question if question is not None else ("Do you really want to proceed? (%s): " % opts)
+        question = question if question is not None else ('Do you really want to proceed? (%s): ' % opts)
 
         if self.noninteractive and not support_non_interactive:
             raise errors.Error('Non-interactive mode not supported for this prompt')
@@ -545,11 +545,11 @@ class App(Cmd):
             if self.args.yes:
                 print(question)
                 if non_interactive_return == self.PROCEED_YES:
-                    print 'Y'
+                    print('Y')
                 elif non_interactive_return == self.PROCEED_NO:
-                    print 'n'
+                    print('n')
                 elif non_interactive_return == self.PROCEED_QUIT:
-                    print 'q'
+                    print('q')
                 else:
                     raise ValueError('Unknown default value')
 
@@ -603,15 +603,15 @@ class App(Cmd):
 
         # Asking for email - interactive
         while not confirmation:
-            var = raw_input("Please enter your email address [empty]: ").strip()
+            var = raw_input('Please enter your email address [empty]: ').strip()
             question = None
             if len(var) == 0:
-                question = "You have entered an empty email address, is it correct? (Y/n):"
+                question = 'You have entered an empty email address, is it correct? (Y/n):'
             elif not util.safe_email(var):
                 print('Email you have entered is invalid, try again')
                 continue
             else:
-                question = "Is this email correct? \"%s\" (Y/n):" % var
+                question = 'Is this email correct? \'%s\' (Y/n):' % var
             confirmation = self.ask_proceed(question)
         return var
 
@@ -620,8 +620,8 @@ class App(Cmd):
         uid = os.getuid()
         euid = os.geteuid()
         if uid != 0 and euid != 0:
-            print("Error: This action requires root privileges")
-            print("Please, start the client with: sudo -E -H ebaws")
+            print('Error: This action requires root privileges')
+            print('Please, start the client with: sudo -E -H ebaws')
             return False
         return True
 
@@ -635,7 +635,7 @@ class App(Cmd):
                 attempt_ctr += 1
                 self.core.pidlock_create()
                 if attempt_ctr > 1:
-                    print("\nPID lock acquired")
+                    print('\nPID lock acquired')
                 return True
 
             except pid.PidFileAlreadyRunningError as e:
@@ -643,8 +643,8 @@ class App(Cmd):
 
             except pid.PidFileError as e:
                 pidnum = self.core.pidlock_get_pid()
-                print("\nError: CLI already running in exclusive mode by PID: %d" % pidnum)
-                print("Next check will be performed in few seconds. Waiting...")
+                print('\nError: CLI already running in exclusive mode by PID: %d' % pidnum)
+                print('Next check will be performed in few seconds. Waiting...')
                 time.sleep(3)
         pass
 
