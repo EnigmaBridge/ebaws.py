@@ -21,9 +21,10 @@ from letsencrypt import LetsEncrypt
 class App(Cmd):
     """EnigmaBridge AWS command line interface"""
     prompt = '$> '
-    intro = '-'*80 + '\n    Enigma Bridge AWS command line interface. ' \
-                     '\n    For help, type usage\n' + \
-                     '\n    init - initializes the EJBCA instance\n' + \
+    intro = '-'*80 + '\n    Enigma Bridge AWS command line interface. \n' \
+                     '\n    usage - shows simple command list' + \
+                     '\n    init  - initializes the EJBCA instance\n' + \
+                     '\n    More info: https://enigmabridge.com/amazonpki \n' + \
             '-'*80
 
     PROCEED_YES = 'yes'
