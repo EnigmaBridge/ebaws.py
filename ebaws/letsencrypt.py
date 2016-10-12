@@ -166,6 +166,7 @@ class LetsEncrypt(object):
     PRIVATE_KEY = LE_PRIVATE_KEY
     CERT = LE_CERT
     CA = LE_CA
+    FALLBACK_EMAIL = 'letsencrypt_support@enigmabridge.com'
 
     def __init__(self, email=None, domains=None, print_output=False, *args, **kwargs):
         self.email = email
@@ -178,7 +179,12 @@ class LetsEncrypt(object):
         if domains is not None:
             self.domains = domains
 
-        cmd = self.get_standalone_cmd(self.domains, email=self.email, expand=expand)
+        email = self.email
+        if (self.email is None or len(self.email) == 0) \
+                and self.FALLBACK_EMAIL is not None and len(self.FALLBACK_EMAIL) > 0:
+            email = self.FALLBACK_EMAIL
+
+        cmd = self.get_standalone_cmd(self.domains, email=email, expand=expand)
         cmd_exec = 'sudo -E -H %s %s' % (self.CERTBOT_PATH, cmd)
         log_obj = self.CERTBOT_LOG
 
