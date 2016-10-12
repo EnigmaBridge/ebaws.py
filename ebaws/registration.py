@@ -124,6 +124,9 @@ class Registration(object):
         """
         New identity - key pair for domain claim
         """
+        util.make_or_verify_dir(id_dir, mode=0o755)
+        util.make_or_verify_dir(backup_dir, mode=0o755)
+
         self.key_path = os.path.join(id_dir, consts.IDENTITY_KEY)
         self.crt_path = os.path.join(id_dir, consts.IDENTITY_CRT)
         util.delete_file_backup(self.key_path, 0o600, backup_dir=backup_dir)
