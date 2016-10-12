@@ -70,15 +70,16 @@ class App(Cmd):
         if not self.check_root() or not self.check_pid():
             return self.return_code(1)
 
-        print "Going to initialize the EB identity"
-        print "WARNING! This is a destructive process!"
-        print "WARNING! The previous installation will be overwritten.\n"
-        should_continue = self.ask_proceed(support_non_interactive=True)
-        if not should_continue:
-            return self.return_code(1)
-
+        print "Going to install EJBCA and initialize EnigmaBridge identity"
+        
         config = Core.read_configuration()
         if config is not None and config.has_nonempty_config():
+            print "WARNING! This is a destructive process!"
+            print "WARNING! The previous installation will be overwritten.\n"
+            should_continue = self.ask_proceed(support_non_interactive=True)
+            if not should_continue:
+                return self.return_code(1)
+
             print "\nWARNING! Configuration already exists in the file %s" % (Core.get_config_file_path())
             print "The configuration will be overwritten by a new one (current config will be backed up)\n"
             should_continue = self.ask_proceed(support_non_interactive=True)
