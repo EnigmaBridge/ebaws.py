@@ -59,7 +59,6 @@ class App(Cmd):
             else:
                 version = dist.version
         except:
-            traceback.print_exc()
             version = 'Trunk'
         return version
 
