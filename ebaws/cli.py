@@ -315,10 +315,10 @@ class App(Cmd):
             new_p12 = ejbca.copy_p12_file()
             public_hostname = ejbca.hostname if domain_is_ok else reg_svc.info_loader.ami_public_hostname
             print('\nDownload p12 file: %s' % new_p12)
-            print('scp -i <your_Amazon_PEM_key> ec2-user@%s:%s .' % (public_hostname, new_p12))
-            print('Key import password is: %s' % ejbca.superadmin_pass)
+            print('  scp -i <your_Amazon_PEM_key> ec2-user@%s:%s .' % (public_hostname, new_p12))
+            print('  Key import password is: %s' % ejbca.superadmin_pass)
             print('\nThe following page can guide you through p12 import: https://enigmabridge.com/support/aws13076')
-            print('Once you import the p12 file to your computer browser/keychain you can connect to the PKI admin interface:\n')
+            print('  Once you import the p12 file to your computer browser/keychain you can connect to the PKI admin interface:\n')
 
             if domain_is_ok:
                 for domain in new_config.domains:
