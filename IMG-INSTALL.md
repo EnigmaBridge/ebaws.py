@@ -63,9 +63,40 @@ Redirecting `/` context-root to the `/ejbca` for the user friendliness.
 </subsystem>
 ```
 
+
+
+## Troubleshooting
+
+### Botan installation
+Botan is SoftHSM-EB dependency and can be installed from the EPEL.
+The minimal version: `botan.x86_64.1.10.13-1.el7`.
+
+### Botan installation from sources
+
+```bash
+# deps
+yum install gcc-c++ sqlite sqlite-devel
+ 
+# Botan install
+wget http://botan.randombit.net/releases/Botan-1.10.12.tgz && \
+tar -xzvf Botan-1.10.12.tgz                                && \
+cd Botan-1.10.12                                           && \
+./configure.py --prefix=$HOME/botan                        && \
+make                                                       && \
+make install                                               && \
+echo -e "[\E[32m\033[1m OK \033[0m] Botan install Success" || \
+(echo -e "[\E[31m\033[1mFAIL\033[0m] Botan install Failed" && \
+exit 1)
+ 
+ 
+# Botan lib reachable by dynamic loader
+echo '/usr/local/lib' > /etc/ld.so.conf.d/local.conf
+ldconfig # to refresh ld cache
+``` 
+
+
 [installation-tutorial]: https://www.rosehosting.com/blog/installing-and-setting-up-java-jboss-7-final-on-a-centos-6-linux-vps/
 [SoftHSM-EB]: https://github.com/EnigmaBridge/SoftHSMv1/releases
 [EJBCA]: https://www.ejbca.org/download.html
 [Quilt]: https://en.wikipedia.org/wiki/Quilt_(software)
-
 
