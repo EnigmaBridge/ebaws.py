@@ -267,7 +267,7 @@ class App(Cmd):
             # LetsEncrypt enrollment
             le_certificate_installed = self.le_install(ejbca)
             for lines in range(8):
-                print("> ")
+                print("")
                 time.sleep(0.1)
             print("System installation is completed")
             print("\n")
