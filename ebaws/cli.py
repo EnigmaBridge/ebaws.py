@@ -292,14 +292,12 @@ class App(Cmd):
 
             # Finalize, P12 file & final instructions
             new_p12 = ejbca.copy_p12_file()
+            public_hostname = hostname if hostname is not None else reg_svc.info_loader.ami_public_hostname
             print('\nDownload p12 file %s' % new_p12)
-            print(' e.g.: scp -i <your amazon PEM key> ec2-user@%s:%s .' % (reg_svc.info_loader.ami_public_hostname, new_p12))
+            print(' e.g.: scp -i <your amazon PEM key> ec2-user@%s:%s .' % (public_hostname, new_p12))
             print('Key import password is: %s' % ejbca.superadmin_pass)
             print('\nOnce you import the p12 file to your computer browser/keychain you can connect to the PKI admin interface:')
-
-            print('https://%s:%d/ejbca/adminweb/' % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
-            if hostname is not None:
-                print('https://%s:%d/ejbca/adminweb/' % (hostname, ejbca.PORT))
+            print('https://%s:%d/ejbca/adminweb/' % (public_hostname, ejbca.PORT))
 
             # Test if EJBCA is reachable on outer interface
             ejbca_open = ejbca.test_port_open(host=reg_svc.info_loader.ami_public_ip)
