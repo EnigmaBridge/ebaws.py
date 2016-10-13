@@ -266,11 +266,9 @@ class App(Cmd):
 
             # LetsEncrypt enrollment
             le_certificate_installed = self.le_install(ejbca)
-            for lines in range(8):
-                print('')
-                time.sleep(0.1)
-            print('System installation is completed')
-            print('\n')
+            self.cli_sleep(8)
+
+            print('System installation is completed\n')
             if le_certificate_installed == 0:
                 if new_config.domains is not None and len(new_config.domains) > 0:
                     print('  We successfully installed a server HTTPS certificate.')
@@ -288,14 +286,10 @@ class App(Cmd):
                 print('     https://%s:%d/ejbca/adminweb/' % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
                 print('WARNING: you will have to override web browser security alerts.')
 
-
-            for lines in range(5):
-                print('')
-                time.sleep(0.1)
+            self.cli_sleep(5)
             print('Please setup your computer for secure connections to your PKI key management system:')
-            for lines in range(5):
-                print('')
-                time.sleep(0.1)
+            self.cli_sleep(5)
+
             # Finalize, P12 file & final instructions
             new_p12 = ejbca.copy_p12_file()
             print('\nDownload p12 file %s' % new_p12)
@@ -310,17 +304,12 @@ class App(Cmd):
             # Test if EJBCA is reachable on outer interface
             ejbca_open = ejbca.test_port_open(host=reg_svc.info_loader.ami_public_ip)
             if not ejbca_open:
-                for lines in range(5):
-                    print('')
-                    time.sleep(0.1)
+                self.cli_sleep(5)
                 print('\nWarning! The PKI port %d is not reachable on the public IP address %s' % (ejbca.PORT, reg_svc.info_loader.ami_public_ip))
                 print('If you cannot connect to the PKI kye management interface, consider reconfiguring the AWS Security Groups')
                 print('Please get in touch with our support via https://enigmabridge/freshdesk.com')
 
-            for lines in range(5):
-                print('')
-                time.sleep(0.1)
-
+            self.cli_sleep(5)
             return self.return_code(0)
 
         except Exception as ex:
@@ -576,6 +565,11 @@ class App(Cmd):
     def return_code(self, code=0):
         self.last_result = code
         return code
+
+    def cli_sleep(self, iter=5):
+        for lines in range(iter):
+            print('')
+            time.sleep(0.1)
 
     def ask_proceed_quit(self, question=None, support_non_interactive=False, non_interactive_return=PROCEED_YES, quit_enabled=True):
         """Ask if user wants to proceed"""
