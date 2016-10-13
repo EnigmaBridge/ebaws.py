@@ -319,7 +319,12 @@ class Registration(object):
         if 'domains' not in resp_update:
             raise InvalidResponse('domains not in the response')
 
-        self.config.domains = resp_update['domains']
+        # Sort the domains by the key (length, lexicographic)
+        domains = resp_update['domains']
+        domains.sort()
+        domains.sort(key=len, reverse=True)
+
+        self.config.domains = domains
         self.config.last_ipv4 = self.info_loader.ami_public_ip
         return self.config
 
