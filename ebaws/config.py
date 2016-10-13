@@ -197,6 +197,15 @@ class Config(object):
     def ejbca_hostname(self, val):
         self.set_config('ejbca_hostname', val)
 
+    # EJBCA LE domains
+    @property
+    def ejbca_domains(self):
+        return self.get_config('ejbca_domains')
+
+    @ejbca_domains.setter
+    def ejbca_domains(self, val):
+        self.set_config('ejbca_domains', val)
+
     # EJBCA key store password
     @property
     def ejbca_jks_password(self):

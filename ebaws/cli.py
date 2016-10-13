@@ -128,7 +128,6 @@ class App(Cmd):
             soft_config = SoftHsmV1Config()
             ejbca = Ejbca(print_output=True)
             syscfg = SysConfig(print_output=True)
-            hostname = None
 
             # Check if we have EJBCA resources on the drive
             if not ejbca.test_environment():
@@ -188,7 +187,6 @@ class App(Cmd):
 
                     if new_config.domains is not None and len(new_config.domains) > 0:
                         domain_is_ok = True
-                        hostname = new_config.domains[0]
                         print('\nNew domains registered for this host: ')
                         for domain in new_config.domains:
                             print('  - %s' % domain)
@@ -247,7 +245,7 @@ class App(Cmd):
             print('  and wait until the process completes.\n')
 
             ejbca.set_config(new_config)
-            ejbca.set_hostname(hostname)
+            ejbca.set_domains(new_config.domains)
             ejbca.configure()
 
             if ejbca.ejbca_install_result != 0:
@@ -299,17 +297,12 @@ class App(Cmd):
 
             print(self.t.underline_green('System installation is completed\n'))
             if le_certificate_installed == 0:
-                if new_config.domains is not None and len(new_config.domains) > 0:
-                    print('  We successfully installed a server HTTPS certificate.')
-                    print('  You can now securely access the system at:')
-                    for domain in new_config.domains:
-                        print('  - %s' % domain)
-                    print('')
-                else:
+                if not domain_is_ok:
                     print('  There was a problem in registering new domain names for you system')
                     print('  Please get in touch with support@enigmabridge.com and we will try to resolve the problem')
             else:
                 print('  Trusted HTTPS certificate was not installed, most likely reason is port 443 being closed by a firewall')
+                print('  For more info please check https://enigmabridge.com/support/aws13073')
                 print('  We will keep re-trying every 5 minutes.')
                 print('\nMeantime, you can access the system at:')
                 print('     https://%s:%d/ejbca/adminweb/' % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
@@ -321,12 +314,18 @@ class App(Cmd):
 
             # Finalize, P12 file & final instructions
             new_p12 = ejbca.copy_p12_file()
-            public_hostname = hostname if hostname is not None else reg_svc.info_loader.ami_public_hostname
+            public_hostname = ejbca.hostname if domain_is_ok else reg_svc.info_loader.ami_public_hostname
             print('\nDownload p12 file %s' % new_p12)
             print(' e.g.: scp -i <your amazon PEM key> ec2-user@%s:%s .' % (public_hostname, new_p12))
             print('Key import password is: %s' % ejbca.superadmin_pass)
-            print('\nOnce you import the p12 file to your computer browser/keychain you can connect to the PKI admin interface:')
-            print('https://%s:%d/ejbca/adminweb/' % (public_hostname, ejbca.PORT))
+            print('\nThe following page can guide you through p12 import: https://enigmabridge.com/support/aws13076')
+            print('Once you import the p12 file to your computer browser/keychain you can connect to the PKI admin interface:')
+
+            if domain_is_ok:
+                for domain in new_config.domains:
+                    print('https://%s:%d/ejbca/adminweb/' % (domain, ejbca.PORT))
+            else:
+                print('https://%s:%d/ejbca/adminweb/' % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
 
             # Test if EJBCA is reachable on outer interface
             ejbca_open = ejbca.test_port_open(host=reg_svc.info_loader.ami_public_ip)
@@ -364,13 +363,15 @@ class App(Cmd):
             return self.return_code(1)
 
         # If there is no hostname, enrollment probably failed.
-        ejbca_host = config.ejbca_hostname
-        ejbca = Ejbca(print_output=True, jks_pass=config.ejbca_jks_password, config=config, hostname=ejbca_host)
+        ejbca = Ejbca(print_output=True, jks_pass=config.ejbca_jks_password, config=config)
+        ejbca.set_domains(config.ejbca_domains)
+        ejbca_host = ejbca.hostname
 
         le_test = LetsEncrypt()
         enroll_new_cert = ejbca_host is None or len(ejbca_host) == 0 or ejbca_host == 'localhost'
         if enroll_new_cert:
-            ejbca_host = domains[0]
+            ejbca.set_domains(domains)
+            ejbca_host = ejbca.hostname
 
         if not enroll_new_cert:
             enroll_new_cert = le_test.is_certificate_ready(domain=ejbca_host) != 0
@@ -381,7 +382,6 @@ class App(Cmd):
             return self.return_code(10)
 
         ret = 0
-        ejbca.hostname = ejbca_host
         if enroll_new_cert:
             # Enroll a new certificate
             ret = self.le_install(ejbca)
@@ -554,7 +554,7 @@ class App(Cmd):
         pass
 
     def le_install(self, ejbca):
-        print('\nInstalling LetsEncrypt certificate for: %s' % ejbca.hostname)
+        print('\nInstalling LetsEncrypt certificate for: %s' % (', '.join(ejbca.domains)))
         ret = ejbca.le_enroll()
         if ret == 0:
             Core.write_configuration(ejbca.config)

@@ -75,7 +75,7 @@ class Ejbca(object):
         #'superadmin.password': 'ejbca',
     }
 
-    def __init__(self, install_props=None, web_props=None, print_output=False, eb_config=None, jks_pass=None, config=None, hostname=None, *args, **kwargs):
+    def __init__(self, install_props=None, web_props=None, print_output=False, eb_config=None, jks_pass=None, config=None, *args, **kwargs):
         self.install_props = install_props if install_props is not None else {}
         self.web_props = web_props if web_props is not None else {}
 
@@ -84,7 +84,8 @@ class Ejbca(object):
         self.superadmin_pass = util.random_password(16)
 
         self.print_output = print_output
-        self.hostname = hostname
+        self.hostname = None
+        self.domains = None
 
         self.lets_encrypt = None
         self.lets_encrypt_jks = None
@@ -135,15 +136,55 @@ class Ejbca(object):
     def set_config(self, config):
         self.config = config
 
+    def set_domains(self, domains, primary=None, set_hostname=True):
+        """
+        Sets the domains EJBCA is reachable on
+        :param domains:
+        :return:
+        """
+        domains_empty = False
+        if domains is None or len(domains) == 0:
+            domains = ['localhost']
+            domains_empty = True
+
+        if not isinstance(domains, types.ListType):
+            domains = [domains]
+
+        # sort by (length, lexicographic)
+        domains.sort()
+        domains.sort(key=len, reverse=True)
+
+        # if primary domain was not set use the longest one (convention).
+        if primary is not None:
+            if primary not in domains:
+                domains.insert(0, primary)
+            elif primary != domains[0]:
+                raise ValueError('Primary domain has to be listed first in the domain list')
+        else:
+            primary = domains[0]
+
+        self.domains = domains
+        if set_hostname:
+            self.set_hostname(primary)
+
+    def check_hostname_domains_consistency(self):
+        return self.domains is not None \
+                and isinstance(self.domains, types.ListType) \
+                and self.hostname == self.domains[0]
+
     def set_hostname(self, hostname):
         """
         Set hostname EJBCA will use - updates properties files in memory
+        Should not be called outside the module (by user), use set_domains instead.
         :return:
         """
         if hostname is None:
             hostname = 'localhost'
 
         self.hostname = hostname
+        if not self.check_hostname_domains_consistency():
+            raise ValueError('Hostname is not consistent with domains, please, rather use set_domains()')
+
         self.web_props['httpsserver.hostname'] = hostname
         self.web_props['httpsserver.dn'] = 'CN=%s,O=Enigma Bridge Ltd,C=GB' % hostname
         return self.web_props
@@ -576,7 +617,10 @@ class Ejbca(object):
             logger.info("Hostname is none/localhost, no letsencrypt operation will be performed")
             return 1
 
-        self.lets_encrypt = letsencrypt.LetsEncrypt(email=self.config.email, domains=self.hostname, print_output=self.print_output)
+        if not self.check_hostname_domains_consistency():
+            raise ValueError('Hostname not in domains, should not happen')
+
+        self.lets_encrypt = letsencrypt.LetsEncrypt(email=self.config.email, domains=self.domains, print_output=self.print_output)
         ret, out, err = self.lets_encrypt.certonly()
         if ret != 0:
             return 2
@@ -599,6 +643,7 @@ class Ejbca(object):
         if ret != 0:
             return 3
 
+        self.config.ejbca_domains = self.domains
         self.config.ejbca_hostname = self.hostname
         return 0
 
