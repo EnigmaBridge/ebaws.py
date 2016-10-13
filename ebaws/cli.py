@@ -267,34 +267,34 @@ class App(Cmd):
             # LetsEncrypt enrollment
             le_certificate_installed = self.le_install(ejbca)
             for lines in range(8):
-                print("")
+                print('')
                 time.sleep(0.1)
-            print("System installation is completed")
-            print("\n")
+            print('System installation is completed')
+            print('\n')
             if le_certificate_installed == 0:
                 if new_config.domains is not None and len(new_config.domains) > 0:
-                    print("  We successfully installed a server HTTPS certificate.")
-                    print("  You can now securely access the system at:")
+                    print('  We successfully installed a server HTTPS certificate.')
+                    print('  You can now securely access the system at:')
                     for domain in new_config.domains:
                         print('  - %s' % domain)
                     print('')
                 else:
-                    print("  There was a problem in registering new domain names for you system")
-                    print("  Please get in touch with support@enigmabridge.com and we will try to resolve the problem")
+                    print('  There was a problem in registering new domain names for you system')
+                    print('  Please get in touch with support@enigmabridge.com and we will try to resolve the problem')
             else:
-                print("  Trusted HTTPS certificate was not installed, most likely reason is port 443 being closed by a firewall")
-                print("  We will keep re-trying every 5 minutes.")
-                print("\nMeantime, you can access the system at:")
+                print('  Trusted HTTPS certificate was not installed, most likely reason is port 443 being closed by a firewall')
+                print('  We will keep re-trying every 5 minutes.')
+                print('\nMeantime, you can access the system at:')
                 print('     https://%s:%d/ejbca/adminweb/' % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
-                print("WARNING: you will have to override web browser security alerts.")
+                print('WARNING: you will have to override web browser security alerts.')
 
 
             for lines in range(5):
-                print("")
+                print('')
                 time.sleep(0.1)
-            print("Please setup your computer for secure connections to your PKI key management system:")
+            print('Please setup your computer for secure connections to your PKI key management system:')
             for lines in range(5):
-                print("")
+                print('')
                 time.sleep(0.1)
             # Finalize, P12 file & final instructions
             new_p12 = ejbca.copy_p12_file()
@@ -311,14 +311,14 @@ class App(Cmd):
             ejbca_open = ejbca.test_port_open(host=reg_svc.info_loader.ami_public_ip)
             if not ejbca_open:
                 for lines in range(5):
-                    print("")
+                    print('')
                     time.sleep(0.1)
                 print('\nWarning! The PKI port %d is not reachable on the public IP address %s' % (ejbca.PORT, reg_svc.info_loader.ami_public_ip))
                 print('If you cannot connect to the PKI kye management interface, consider reconfiguring the AWS Security Groups')
                 print('Please get in touch with our support via https://enigmabridge/freshdesk.com')
 
             for lines in range(5):
-                print("")
+                print('')
                 time.sleep(0.1)
 
             return self.return_code(0)
