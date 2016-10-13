@@ -17,17 +17,14 @@ from softhsm import SoftHsmV1Config
 from ejbca import Ejbca
 from ebsysconfig import SysConfig
 from letsencrypt import LetsEncrypt
+from pkg_resources import get_distribution, DistributionNotFound
 
 
 class App(Cmd):
     """EnigmaBridge AWS command line interface"""
     prompt = '$> '
-    intro = '-'*80 + '\n    Enigma Bridge AWS command line interface. \n' \
-                     '\n    usage - shows simple command list' + \
-                     '\n    init  - initializes the key management system\n' + \
-                     '\n    More info: https://enigmabridge.com/amazonpki \n' + \
-            '-'*80
 
+    PIP_NAME = 'ebaws.py'
     PROCEED_YES = 'yes'
     PROCEED_NO = 'no'
     PROCEED_QUIT = 'quit'
@@ -45,7 +42,37 @@ class App(Cmd):
         self.last_result = 0
 
         self.noninteractive = False
+        self.version = self.load_version()
+
         self.t = Terminal()
+        self.update_intro()
+
+    def load_version(self):
+        dist = None
+        version = None
+        try:
+            dist = get_distribution(self.PIP_NAME)
+            dist_loc = os.path.normcase(dist.location)
+            here = os.path.normcase(__file__)
+            if not here.startswith(os.path.join(dist_loc, self.PIP_NAME)):
+                raise DistributionNotFound
+            else:
+                version = dist.version
+        except:
+            traceback.print_exc()
+            version = 'Trunk'
+        return version
+
+    def update_intro(self):
+        self.intro = '-'*80 + \
+                     ('\n    Enigma Bridge AWS command line interface (v%s). \n' % self.version) + \
+                     '\n    usage - shows simple command list' + \
+                     '\n    init  - initializes the key management system\n' + \
+                     '\n    More info: https://enigmabridge.com/amazonpki \n' + \
+                     '-'*80
+
+    def do_version(self, line):
+        print('%s-%s' % (self.PIP_NAME, self.version))
 
     def do_dump_config(self, line):
         """Dumps the current configuration to the terminal"""
