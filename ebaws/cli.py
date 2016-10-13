@@ -9,6 +9,7 @@ import pid
 import time
 import util
 import errors
+from blessings import Terminal
 from consts import *
 from core import Core
 from registration import Registration, InfoLoader
@@ -44,6 +45,7 @@ class App(Cmd):
         self.last_result = 0
 
         self.noninteractive = False
+        self.t = Terminal()
 
     def do_dump_config(self, line):
         """Dumps the current configuration to the terminal"""
@@ -268,7 +270,7 @@ class App(Cmd):
             le_certificate_installed = self.le_install(ejbca)
             self.cli_sleep(8)
 
-            print('System installation is completed\n')
+            print(self.t.underline_green('System installation is completed\n'))
             if le_certificate_installed == 0:
                 if new_config.domains is not None and len(new_config.domains) > 0:
                     print('  We successfully installed a server HTTPS certificate.')
