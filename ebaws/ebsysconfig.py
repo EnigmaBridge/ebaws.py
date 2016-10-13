@@ -116,7 +116,7 @@ class SysConfig(object):
             os.remove(cron_path)
 
         with util.safe_open(cron_path, mode='w', chmod=0o644) as handle:
-            handle.write('# Daily certificate renewal for Enigma installation (EJBCA Lets Encrypt)\n')
+            handle.write('# Daily certificate renewal for the PKI key management system (EJBCA LetsEncrypt)\n')
             handle.write('*/5 * * * * root /usr/bin/ebaws -n --pid-lock 3 renew >/dev/null 2>/dev/null \n')
         return 0
 

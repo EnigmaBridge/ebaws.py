@@ -23,7 +23,7 @@ class App(Cmd):
     prompt = '$> '
     intro = '-'*80 + '\n    Enigma Bridge AWS command line interface. \n' \
                      '\n    usage - shows simple command list' + \
-                     '\n    init  - initializes the EJBCA instance\n' + \
+                     '\n    init  - initializes the key management system\n' + \
                      '\n    More info: https://enigmabridge.com/amazonpki \n' + \
             '-'*80
 
@@ -52,8 +52,8 @@ class App(Cmd):
 
     def do_usage(self, line):
         """Writes simple usage hints"""
-        print('init   - initializes the EJBCA instance with new identity')
-        print('renew  - renews Lets Encrypt certificate used by EJBCA installation')
+        print('init   - initializes the PKI key management instance with new identity')
+        print('renew  - renews publicly trusted certificate for secure web access')
         print('usage  - writes this usage info')
 
     def do_install(self, line):
@@ -71,7 +71,7 @@ class App(Cmd):
         if not self.check_root() or not self.check_pid():
             return self.return_code(1)
 
-        print('Going to install EJBCA and initialize EnigmaBridge identity\n')
+        print('Going to install PKI system and enrol it to the Enigma Bridge FIPS140-2 encryption service.\n')
 
         config = Core.read_configuration()
         if config is not None and config.has_nonempty_config():
@@ -103,7 +103,7 @@ class App(Cmd):
 
             # Check if we have EJBCA resources on the drive
             if not ejbca.test_environment():
-                print('\nError: Environment is damaged, some assets are missing for the EJBCA installation. Cannot continue.')
+                print('\nError: Environment is damaged, some assets are missing for the key management installation. Cannot continue.')
                 return self.return_code(1)
 
             # Determine if we have enough RAM for the work.
@@ -213,7 +213,7 @@ class App(Cmd):
             print('SoftHSMv1 initialization: %s' % out)
 
             # EJBCA configuration
-            print('Going to install EJBCA')
+            print('Going to install PKI system')
             print('  This may take 15 minutes or less. Please, do not interrupt the installation')
             print('  and wait until the process completes.\n')
 
@@ -222,11 +222,11 @@ class App(Cmd):
             ejbca.configure()
 
             if ejbca.ejbca_install_result != 0:
-                print('\nEJBCA installation error, please, try again.')
+                print('\nPKI installation error. Please try again.')
                 return self.return_code(1)
 
             Core.write_configuration(ejbca.config)
-            print('\nEJBCA installed successfully.')
+            print('\nPKI installed successfully.')
 
             # Generate new keys
             print('\nGoing to generate EnigmaBridge keys in the crypto token:')
@@ -255,24 +255,53 @@ class App(Cmd):
                     print('  %s' % ejbca.pkcs11_get_command(tmpcmd))
 
             # Add SoftHSM crypto token to EJBCA
-            print('\nAdding EnigmaBridge crypto token to EJBCA:')
+            print('\nAdding an EnigmaBridge crypto token to your PKI instance:')
             ret, out, err = ejbca.ejbca_add_softhsm_token(softhsm=soft_config, name='EnigmaBridgeToken')
             if ret != 0:
-                print('\nError in adding EnigmaBridge token to the EJBCA')
-                print('You can add it manually in the EJBCA admin page later')
+                print('\nError in adding EnigmaBridge token to the PKI instance')
+                print('You can add it manually in the PKI (EJBCA) admin page later')
                 print('Pin for the SoftHSMv1 (EnigmaBridge) token is 0000')
             else:
-                print('\nEnigmaBridgeToken added to EJBCA')
+                print('\nEnigmaBridgeToken added to the PKI instance')
 
             # LetsEncrypt enrollment
-            self.le_install(ejbca)
+            le_certificate_installed = self.le_install(ejbca)
+            for lines in range(8):
+                print("> ")
+                time.sleep(0.1)
+            print("System installation is completed")
+            print("\n")
+            if le_certificate_installed == 0:
+                if new_config.domains is not None and len(new_config.domains) > 0:
+                    print("  We successfully installed a server HTTPS certificate.")
+                    print("  You can now securely access the system at:")
+                    for domain in new_config.domains:
+                        print('  - %s' % domain)
+                    print('')
+                else:
+                    print("  There was a problem in registering new domain names for you system")
+                    print("  Please get in touch with support@enigmabridge.com and we will try to resolve the problem")
+            else:
+                print("  Trusted HTTPS certificate was not installed, most likely reason is port 443 being closed by a firewall")
+                print("  We will keep re-trying every 5 minutes.")
+                print("\nMeantime, you can access the system at:")
+                print('     https://%s:%d/ejbca/adminweb/' % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
+                print("WARNING: you will have to override web browser security alerts.")
 
+
+            for lines in range(5):
+                print("")
+                time.sleep(0.1)
+            print("Please setup your computer for secure connections to your PKI key management system:")
+            for lines in range(5):
+                print("")
+                time.sleep(0.1)
             # Finalize, P12 file & final instructions
             new_p12 = ejbca.copy_p12_file()
             print('\nDownload p12 file %s' % new_p12)
             print(' e.g.: scp -i <your amazon PEM key> ec2-user@%s:%s .' % (reg_svc.info_loader.ami_public_hostname, new_p12))
-            print('Export password: %s' % ejbca.superadmin_pass)
-            print('\nOnce you import p12 file to your browser/keychain you can connect to the EJBCA admin interface:')
+            print('Key import password is: %s' % ejbca.superadmin_pass)
+            print('\nOnce you import the p12 file to your computer browser/keychain you can connect to the PKI admin interface:')
 
             print('https://%s:%d/ejbca/adminweb/' % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
             if hostname is not None:
@@ -281,8 +310,16 @@ class App(Cmd):
             # Test if EJBCA is reachable on outer interface
             ejbca_open = ejbca.test_port_open(host=reg_svc.info_loader.ami_public_ip)
             if not ejbca_open:
-                print('\nWarning! EJBCA port %d is not reachable on the public IP %s' % (ejbca.PORT, reg_svc.info_loader.ami_public_ip))
-                print('If you cannot connect to EJBCA interface, consider reconfiguring the AWS Security Groups')
+                for lines in range(5):
+                    print("")
+                    time.sleep(0.1)
+                print('\nWarning! The PKI port %d is not reachable on the public IP address %s' % (ejbca.PORT, reg_svc.info_loader.ami_public_ip))
+                print('If you cannot connect to the PKI kye management interface, consider reconfiguring the AWS Security Groups')
+                print('Please get in touch with our support via https://enigmabridge/freshdesk.com')
+
+            for lines in range(5):
+                print("")
+                time.sleep(0.1)
 
             return self.return_code(0)
 
@@ -359,7 +396,7 @@ class App(Cmd):
                 print('')
 
             if config.ejbca_hostname is not None:
-                print('Domain used for EJBCA: %s\n' % config.ejbca_hostname)
+                print('Domain used for your PKI system: %s\n' % config.ejbca_hostname)
 
             # Identity load (keypair)
             ret = reg_svc.load_identity()
@@ -413,7 +450,7 @@ class App(Cmd):
                     and not new_config.ejbca_hostname_custom \
                     and new_config.ejbca_hostname not in new_config.domains:
                 print('\nWarning! Returned domains do not correspond to the domain used during EJBCA installation %s' % new_config.ejbca_hostname)
-                print('\nEJBCA redeploy has to be performed, this operations is not yet supported')
+                print('\nThe PKI instance must be redeployed. This operations is not yet supported, please email to support@enigmabridge.com')
 
             Core.write_configuration(new_config)
             return self.return_code(0)
@@ -453,7 +490,7 @@ class App(Cmd):
 
         ejbca = Ejbca(print_output=True)
 
-        print(' - Undeploying EJBCA from JBoss')
+        print(' - Undeploying PKI System (EJBCA) from the application server')
         ejbca.undeploy()
         ejbca.jboss_restart()
 
@@ -506,10 +543,10 @@ class App(Cmd):
         if ret == 0:
             Core.write_configuration(ejbca.config)
             ejbca.jboss_reload()
-            print('\nLetsEncrypt certificate installed')
+            print('\nPublicly trusted certificate installed (issued by LetsEncrypt')
 
         else:
-            print('\nFailed to install LetsEncrypt certificate, code=%s.' % ret)
+            print('\nFailed to install publicly trusted certificate, self-signed certificate will be used instead, code=%s.' % ret)
             print('You can try it again later with command renew\n')
         return ret
 
@@ -526,7 +563,7 @@ class App(Cmd):
         if ret == 0:
             Core.write_configuration(ejbca.config)
             ejbca.jboss_reload()
-            print('\nNew LetsEncrypt certificate installed')
+            print('\nNew publicly trusted certificate installed (issued by LetsEncrypt)')
 
         elif ret == 1:
             print('\nRenewal not needed, certificate did not change')

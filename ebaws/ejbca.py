@@ -49,7 +49,7 @@ class Ejbca(object):
     # Default installation settings
     INSTALL_PROPERTIES = {
         'ca.name': 'ManagementCA',
-        'ca.dn': 'CN=ManagementCA,O=EJBCA EnigmaBridge,C=GB',
+        'ca.dn': 'CN=ManagementCA,O=Enigma Bridge Ltd,C=GB',
         'ca.tokentype': 'soft',
         'ca.keytype': 'RSA',
         'ca.keyspec': '2048',
@@ -63,7 +63,7 @@ class Ejbca(object):
         'cryptotoken.p11.lib.255.file': '/usr/lib64/softhsm/libsofthsm.so',
 
         'httpsserver.hostname': 'localhost',
-        'httpsserver.dn': 'CN=localhost,O=EJBCA EnigmaBridge,C=GB',
+        'httpsserver.dn': 'CN=localhost,O=Enigma Bridge Ltd,C=GB',
 
         'superadmin.cn': 'SuperAdmin',
         'superadmin.dn': 'CN=SuperAdmin',
@@ -145,7 +145,7 @@ class Ejbca(object):
 
         self.hostname = hostname
         self.web_props['httpsserver.hostname'] = hostname
-        self.web_props['httpsserver.dn'] = 'CN=%s,O=EJBCA EnigmaBridge,C=GB' % hostname
+        self.web_props['httpsserver.dn'] = 'CN=%s,O=Enigma Bridge Ltd,C=GB' % hostname
         return self.web_props
 
     def update_properties(self):
@@ -669,23 +669,23 @@ class Ejbca(object):
 
         # Restart jboss - to make sure it is running
         if self.print_output:
-            print "\n - Restarting JBoss, please wait..."
+            print "\n - Restarting application server, please wait..."
         jboss_works = self.jboss_restart()
         if not jboss_works:
-            print "\n JBoss could not be restarted. Please, resolve the problem and start again"
+            print "\n Application server (JBoss) could not be restarted. Please, resolve the problem and start again"
             return 100
 
         # 2. Undeploy original EJBCA, make JBoss clean
         if self.print_output:
-            print "\n - Preparing JBoss environment"
+            print "\n - Preparing environment for application server"
         self.undeploy()
 
         # Restart jboss - so we can delete database after removal
         if self.print_output:
-            print "\n - Restarting JBoss, please wait..."
+            print "\n - Restarting application server, please wait..."
         jboss_works = self.jboss_restart()
         if not jboss_works:
-            print "\n JBoss could not be restarted. Please, resolve the problem and start again"
+            print "\n Application server could not be restarted. Please, resolve the problem and start again"
             return 100
 
         # Delete & backup database, fix privileges, reload.
@@ -696,7 +696,7 @@ class Ejbca(object):
         # 3. deploy, 5 attempts
         for i in range(0, 5):
             if self.print_output:
-                print "\n - Deploying EJBCA" if i == 0 else "\n - Deploying EJBCA, attempt %d" % (i+1)
+                print "\n - Deploying the PKI system" if i == 0 else "\n - Deploying the PKI system, attempt %d" % (i+1)
             res, out, err = self.ant_deploy()
             self.ejbca_install_result = res
             if res == 0:
@@ -708,7 +708,7 @@ class Ejbca(object):
         # 4. install, 3 attempts
         for i in range(0, 3):
             if self.print_output:
-                print " - Installing EJBCA" if i == 0 else " - Installing EJBCA, attempt %d" % (i+1)
+                print " - Installing the PKI system" if i == 0 else " - Installing the PKI system, attempt %d" % (i+1)
             self.jboss_fix_privileges()
             self.jboss_wait_after_deploy()
 

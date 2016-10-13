@@ -136,7 +136,7 @@ class SoftHsmV1Config(object):
         conf_name = self.CONFIG_FILE
         with os.fdopen(os.open(conf_name, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644), 'w') as config_file:
             config_file.write('// \n')
-            config_file.write('// SoftHSM configuration file for EnigmaBridge \n')
+            config_file.write('// SoftHSM configuration file for Enigma Bridge \n')
             config_file.write('// Config file generated: %s\n' % datetime.now().strftime("%Y-%m-%d %H:%M"))
             config_file.write('// \n')
             config_file.write(json.dumps(self.json, indent=2) + "\n\n")

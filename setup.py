@@ -51,7 +51,7 @@ docs_extras = [
 setup(
     name='ebaws.py',
     version=version,
-    description='EnigmaBridge Python Utilities for AWS',
+    description='Enigma Bridge Python Utilities for AWS',
     url='https://enigmabridge.com',
     author="Enigma Bridge",
     author_email='info@enigmabridge.com',
