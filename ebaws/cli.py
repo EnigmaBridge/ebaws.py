@@ -293,7 +293,7 @@ class App(Cmd):
 
             # LetsEncrypt enrollment
             le_certificate_installed = self.le_install(ejbca)
-            self.cli_sleep(8)
+            self.cli_sleep(3)
 
             print(self.t.underline_green('System installation is completed\n'))
             if le_certificate_installed == 0:
@@ -308,9 +308,9 @@ class App(Cmd):
                 print('     https://%s:%d/ejbca/adminweb/' % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
                 print('WARNING: you will have to override web browser security alerts.')
 
-            self.cli_sleep(5)
+            self.cli_sleep(3)
             print('Please setup your computer for secure connections to your PKI key management system:')
-            self.cli_sleep(5)
+            self.cli_sleep(3)
 
             # Finalize, P12 file & final instructions
             new_p12 = ejbca.copy_p12_file()
