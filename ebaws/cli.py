@@ -292,6 +292,8 @@ class App(Cmd):
 
             # LetsEncrypt enrollment
             le_certificate_installed = self.le_install(ejbca)
+
+            print('-'*80)
             self.cli_sleep(3)
 
             print(self.t.underline_green('System installation is completed\n'))
@@ -318,13 +320,13 @@ class App(Cmd):
             print('  scp -i <your_Amazon_PEM_key> ec2-user@%s:%s .' % (public_hostname, new_p12))
             print('  Key import password is: %s' % ejbca.superadmin_pass)
             print('\nThe following page can guide you through p12 import: https://enigmabridge.com/support/aws13076')
-            print('  Once you import the p12 file to your computer browser/keychain you can connect to the PKI admin interface:\n')
+            print('Once you import the p12 file to your computer browser/keychain you can connect to the PKI admin interface:')
 
             if domain_is_ok:
                 for domain in new_config.domains:
-                    print('https://%s:%d/ejbca/adminweb/' % (domain, ejbca.PORT))
+                    print('  https://%s:%d/ejbca/adminweb/' % (domain, ejbca.PORT))
             else:
-                print('https://%s:%d/ejbca/adminweb/' % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
+                print('  https://%s:%d/ejbca/adminweb/' % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
 
             # Test if EJBCA is reachable on outer interface
             ejbca_open = ejbca.test_port_open(host=reg_svc.info_loader.ami_public_ip)
