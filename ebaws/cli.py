@@ -9,6 +9,7 @@ import pid
 import time
 import util
 import errors
+import textwrap
 from blessed import Terminal
 from consts import *
 from core import Core
@@ -729,6 +730,14 @@ class App(Cmd):
         except:
             pass
         return 80
+
+    def wrap_term(self, text="", single_string=False, max_width=None):
+        width = self.get_term_width()
+        if max_width is not None and width > max_width:
+            width = max_width
+
+        res = textwrap.wrap(text, width)
+        return res if not single_string else '\n'.join(res)
 
     def app_main(self):
         # Backup original arguments for later parsing
