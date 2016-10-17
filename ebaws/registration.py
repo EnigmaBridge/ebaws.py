@@ -61,7 +61,11 @@ class InfoLoader(object):
 
     def load(self):
         self.env_check()
-        out, err = util.run_script([self.ec2_metadata_executable] + ('-a -i -t -z -c -v -o -p'.split(' ')))
+
+        # removed options:
+        # -o local ip
+        # -c product codes
+        out, err = util.run_script([self.ec2_metadata_executable] + ('-a -i -t -z -v -p'.split(' ')))
 
         lines = [x.strip() for x in out.split('\n')]
         self.ami_results = {}
