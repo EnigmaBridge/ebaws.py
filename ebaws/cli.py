@@ -54,7 +54,7 @@ class App(Cmd):
             dist = get_distribution(self.PIP_NAME)
             dist_loc = os.path.normcase(dist.location)
             here = os.path.normcase(__file__)
-            if not here.startswith(os.path.join(dist_loc, self.PIP_NAME)):
+            if not here.startswith(dist_loc):
                 raise DistributionNotFound
             else:
                 version = dist.version
@@ -64,7 +64,7 @@ class App(Cmd):
 
     def update_intro(self):
         self.intro = '-'*80 + \
-                     ('\n    Enigma Bridge AWS command line interface (v%s). \n' % self.version) + \
+                     ('\n    Enigma Bridge AWS command line interface (v%s) \n' % self.version) + \
                      '\n    usage - shows simple command list' + \
                      '\n    init  - initializes the key management system\n' + \
                      '\n    More info: https://enigmabridge.com/amazonpki \n' + \
