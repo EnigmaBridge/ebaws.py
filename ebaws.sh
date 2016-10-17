@@ -26,6 +26,7 @@ Help for ebaws itself cannot be provided until it is installed.
   --debug                                   attempt experimental installation
   -h, --help                                print this help
   -n, --non-interactive,                    run without asking for user input
+  --allow-update,                           run without asking on update permission
   --no-self-upgrade                         do not download updates
   --os-packages-only                        install OS dependencies and exit
   -v, --verbose                             provide more output
@@ -46,6 +47,8 @@ for arg in "$@" ; do
       HELP=1;;
     --non-interactive)
       ASSUME_YES=1;;
+    --allow-update)
+      ALLOW_UPDATE=1;;
     --verbose)
       VERBOSE=1;;
     -[!-]*)
@@ -62,6 +65,21 @@ for arg in "$@" ; do
   esac
 done
 
+confirm ()
+{
+    # call with a prompt string or use a default
+    read -r -p "${1:-Are you sure? [y/N]} " response
+    RET=0
+    case "$response" in
+        [yY][eE][sS]|[yY])
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # Running under root?
 if test "`id -u`" -ne "0" ; then
   echo "$USAGE"
@@ -71,8 +89,27 @@ if test "`id -u`" -ne "0" ; then
   exit 1
 fi
 
+if [ "$HELP" == 1 ]; then
+    echo "$USAGE"
+fi
+
+UPDATE_ALLOWED=0
+if [ "$ALLOW_UPDATE" == 1 -o "$ASSUME_YES" == 1 ]; then
+    UPDATE_ALLOWED=1
+fi
+
+# Can we upgrade? Ask the user
+if [ "$ASSUME_YES" != 1 -a "$ALLOW_UPDATE" != 1 ]; then
+  echo "EnigmaBridge AWS client would like to update itself so you have the newest version"
+  if confirm "Do you allow it to do update with pip? [y/N]"; then
+    UPDATE_ALLOWED=1
+   else
+    UPDATE_ALLOWED=0
+  fi
+fi
+
 # Upgrade step
-if [ "$NO_SELF_UPGRADE" != 1 ]; then
+if [ "$NO_SELF_UPGRADE" != 1 -a "$UPDATE_ALLOWED" == 1 ]; then
     echo "Checking for updates..."
     set +e
     PIP_OUT=`pip install --no-cache-dir --upgrade ebaws.py 2>&1`

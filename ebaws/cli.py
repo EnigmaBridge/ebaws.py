@@ -803,6 +803,8 @@ class App(Cmd):
         parser.add_argument('--yes', dest='yes', action='store_const', const=True,
                             help='answers yes to the questions in the non-interactive mode, mainly for init')
 
+        parser.add_argument('--allow-update', action='store_const', const=True,
+                            help='Inherited option from auto-update wrapper, no action here')
         parser.add_argument('--no-self-upgrade', action='store_const', const=True,
                             help='Inherited option from auto-update wrapper, no action here')
         parser.add_argument('--os-packages-only', action='store_const', const=True,
