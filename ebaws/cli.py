@@ -63,12 +63,12 @@ class App(Cmd):
         return version
 
     def update_intro(self):
-        self.intro = '-'*80 + \
+        self.intro = '-'*self.get_term_width() + \
                      ('\n    Enigma Bridge AWS command line interface (v%s) \n' % self.version) + \
                      '\n    usage - shows simple command list' + \
                      '\n    init  - initializes the key management system\n' + \
                      '\n    More info: https://enigmabridge.com/amazonpki \n' + \
-                     '-'*80
+                     '-'*self.get_term_width()
 
     def do_version(self, line):
         print('%s-%s' % (self.PIP_NAME, self.version))
@@ -291,7 +291,7 @@ class App(Cmd):
             le_certificate_installed = self.le_install(ejbca)
 
             print('\n')
-            print('-'*80)
+            print('-'*self.get_term_width())
             self.cli_sleep(3)
 
             print(self.t.underline_green('[OK] System installation is completed'))
@@ -308,7 +308,7 @@ class App(Cmd):
                 print('WARNING: you will have to override web browser security alerts.')
 
             self.cli_sleep(3)
-            print('-'*80)
+            print('-'*self.get_term_width())
             print('')
             print(self.t.underline('Please setup your computer for secure connections to your PKI key management system:'))
             time.sleep(0.5)
@@ -718,6 +718,17 @@ class App(Cmd):
                 print('Next check will be performed in few seconds. Waiting...')
                 time.sleep(3)
         pass
+
+    def get_term_width(self):
+        try:
+            width = self.t.width
+            if width is None or width <= 0:
+                return 80
+
+            return width
+        except:
+            pass
+        return 80
 
     def app_main(self):
         # Backup original arguments for later parsing
