@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 
+# Do not forget to undeploy existing EJBCA installation.
+/etc/init.d/jboss-eap-6.4.0 stop
+
 # ec2-user
 /bin/rm /home/ec2-user/.jboss-cli-history
 /bin/rm /home/ec2-user/.viminfo
+/bin/rm -f /home/ec2-user/certbot.log
+/bin/rm -f /home/ec2-user/ejbca-admin.p12
 echo -n '' > /home/ec2-user/.bash_history
 /bin/rm -rf /home/ec2-user/.config/*
 /bin/rm -rf /home/ec2-user/.config/*
