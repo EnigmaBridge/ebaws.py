@@ -12,10 +12,13 @@
 #    http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/set-up-ami-tools.html#ami-tools-managing-certs
 #
 #    openssl genrsa 2048 > private-key.pem
-#    openssl req -new -x509 -nodes -sha256 -days 365 -key private-key.pem -outform PEM -out certificate.pem#
+#    openssl req -new -x509 -nodes -sha256 -days 365 -key private-key.pem -outform PEM -out certificate.pem
 #
 #    For cloudwatch, etc: PKCS8 (not needed for our case)
 #    openssl pkcs8 -topk8 -nocrypt -inform PEM -in private-key.pem -out private-key-8.pem
+#
+#    Upload the signing certificate here: https://console.aws.amazon.com/iam/home
+#    Users -> <you> -> Security Credentials tab -> Manage signing certificates button -> Upload
 #
 # 3. scp the private key and certificate to the instance under /tmp/cert
 #
