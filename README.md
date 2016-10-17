@@ -7,7 +7,7 @@ to securely store your root CA keys.
 The cli looks like the following:
 ```
 --------------------------------------------------------------------------------
-    Enigma Bridge AWS command line interface (v0.0.13) 
+    Enigma Bridge AWS command line interface (v0.0.14) 
 
     usage - shows simple command list
     init  - initializes the key management system
@@ -78,7 +78,7 @@ The installation process looks like this:
 
 ```
 --------------------------------------------------------------------------------
-    Enigma Bridge AWS command line interface (v0.0.12) 
+    Enigma Bridge AWS command line interface (v0.0.14) 
 
     usage - shows simple command list
     init  - initializes the key management system
