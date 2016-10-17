@@ -3,7 +3,7 @@
 Brief outline of the installation of the base AWS image needed for ebaws.py to work.
 
 * Install JBoss EAP 6.4.0
-* Install [EJBCA] 3.1.1.1
+* Install [EJBCA] 6.3.1.1
 * Install [SoftHSM-EB] from RPMs
 
 ## JBoss installation
