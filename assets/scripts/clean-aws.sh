@@ -19,6 +19,9 @@ echo -n '' > /home/ec2-user/.bash_history
 /bin/rm /root/.viminfo
 echo -n '' > /root/.bash_history
 find /root/.*history /home/*/.*history -exec rm -f {} \;
+/bin/rm -rf /root/.config/*
+/bin/rm -rf /root/.config/*
+/bin/rm -rf /root/.cache/pip
 
 # Logs
 echo -n '' > /var/log/jboss-console.log
