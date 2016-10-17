@@ -65,6 +65,16 @@ Redirecting `/` context-root to the `/ejbca` for the user friendliness.
 
 
 
+## Wrapper script
+Install `ebaws.sh` as a `/usr/sbin/ebaws`
+
+
+## Minor settings
+
+### Motd 
+Copy `assets/motd/35-banner-eb` to `/etc/update-motd.d/35-banner-eb`
+
+
 ## Troubleshooting
 
 ### Botan installation

@@ -81,7 +81,7 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'ebaws = ebaws.cli:main',
+            'ebaws-cli = ebaws.cli:main',
         ],
     }
 )

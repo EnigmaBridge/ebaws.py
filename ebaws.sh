@@ -5,6 +5,17 @@
 
 set -e  # Work even if somebody does "sh thisscript.sh".
 
+# Colors
+red='\e[0;31m'
+green='\e[0;32m'
+yellow='\e[0;33m'
+reset='\e[0m'
+
+echoRed() { echo -e "${red}$1${reset}"; }
+echoGreen() { echo -e "${green}$1${reset}"; }
+echoYellow() { echo -e "${yellow}$1${reset}"; }
+
+# Basename + usage + argument processing
 BASENAME=$(basename $0)
 USAGE="Usage: $BASENAME [OPTIONS]
 A self-updating wrapper script for the EBAWS. When run, updates
@@ -51,6 +62,15 @@ for arg in "$@" ; do
   esac
 done
 
+# Running under root?
+if test "`id -u`" -ne "0" ; then
+  echo "$USAGE"
+  echo ""
+  echoRed "Error: This script needs to be run under root."
+  echo "Try running with sudo -E -H $0"
+  exit 1
+fi
+
 # Upgrade step
 if [ "$NO_SELF_UPGRADE" != 1 ]; then
     echo "Checking for updates..."
@@ -69,5 +89,5 @@ if [ "$NO_SELF_UPGRADE" != 1 ]; then
 fi
 
 # Invoke the python client directly
-/usr/local/bin/ebaws "$@"
+/usr/local/bin/ebaws-cli "$@"
 
