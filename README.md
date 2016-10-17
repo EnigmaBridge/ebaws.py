@@ -7,7 +7,7 @@ to securely store your root CA keys.
 The cli looks like the following:
 ```
 --------------------------------------------------------------------------------
-    Enigma Bridge AWS command line interface (v0.0.12) 
+    Enigma Bridge AWS command line interface (v0.0.13) 
 
     usage - shows simple command list
     init  - initializes the key management system
@@ -19,6 +19,55 @@ $>
 
 Specific AMI is required - with JBoss EAP & EJBCA installed.
 More information on image setup can be found in [IMG-INSTALL] page.
+
+## Features
+
+* EJBCA 6.3.1.1
+* JBoss EAP 6.4
+* SoftHSMv1-EnigmaBridge PKCS#11 adapter
+* EnigmaBridge Dynamic DNS for AWS
+
+### SoftHSMv1-EnigmaBridge PKCS#11 adapter
+[SoftHSMv1-EB] is a PKCS#11 interface for [EnigmaBridge] services. 
+Using this adapter one can use our services using the generic PKCS#11 interface without need to modify the software.
+
+Like in EJBCA case, there is no need to modify the software which supports PKCS#11,
+just plug our adapter to it and it starts working.
+
+One can for example generate RSA keys via PKCS#11 adapter and call encrypt, decrypt, sign, verify operations on it.
+The keys are securely stored on EnigmaBridge servers, in the secure hardware.
+The cryptographic operation itself is performed in the secure hardware in a transparent way.
+
+### Dynamic DNS
+Amazon provides IP address to your EC2 instance from the IP pool. This kind of address
+is re-allocated after your instance is turned off. After next start it will get a new IP address.
+
+Usually its convenient to have a static IP so you can map it to the domain name or
+put in the config files, manuals, etc... You can buy Amazon Elastic IP which 
+remains static even after instance restart or you can use our [EnigmaBridge]
+ Dynamic DNS feature for the AWS.
+ 
+During the initialization we allocate a new domains for your running instance, 
+e.g., sunderland1.pki.enigmabridge.com. It has A record pointing to your current IP address.
+
+After you restart your instance, our script is started. It connects to our 
+DNS server and updates the A record for your domain in a secure way - 
+request is signed with the key generated when domain was created.
+
+Time to live of the record is 600 seconds so after the restart the hostname
+is updated in 10 minutes. 
+
+In this way you will get the static DNS name even if your IP changes.
+
+## Requirements
+
+Generally the host need to have TCP port 443 open for LetsEncrypt domain verification.
+Without that you won't get valid SSL certificate for your CA domain and you won't
+be able to access administration console of your EJBCA installation in a secure way.
+
+The EJBCA itself runs on TCP port 8443. It depends on you how you set it. It don't necessarily 
+have to be open to the world-fine. Its enough if you can access it somehow. e.g., 
+it's possible to access EJBCA admin via SSH tunnel. `ssh -L 8443:localhost:8443 ami_ip`
 
 ## Init
 The init command starts a new fresh installation. If a previous installation is present
@@ -159,4 +208,5 @@ pip install --user cryptography
 [100-named-groups]: https://community.letsencrypt.org/t/certbot-auto-fails-while-setting-up-virtual-environment-complains-about-package-hashes/20529/18
 [IMG-INSTALL]: https://github.com/EnigmaBridge/ebaws.py/blob/master/IMG-INSTALL.md
 [EnigmaBridge]: https://enigmabridge.com
+[SoftHSMv1-EB]: https://github.com/EnigmaBridge/SoftHSMv1
 
