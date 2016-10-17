@@ -20,6 +20,8 @@ $>
 Specific AMI is required - with JBoss EAP & EJBCA installed.
 More information on image setup can be found in [IMG-INSTALL] page.
 
+For info on the network communication flow during the installation please refer to [connections] page.
+
 ## Features
 
 * EJBCA 6.3.1.1
@@ -209,4 +211,6 @@ pip install --user cryptography
 [IMG-INSTALL]: https://github.com/EnigmaBridge/ebaws.py/blob/master/IMG-INSTALL.md
 [EnigmaBridge]: https://enigmabridge.com
 [SoftHSMv1-EB]: https://github.com/EnigmaBridge/SoftHSMv1
+[connections]: https://github.com/EnigmaBridge/ebaws.py/blob/master/connections.md
+
 
