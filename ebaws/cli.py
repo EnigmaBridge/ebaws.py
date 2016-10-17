@@ -293,13 +293,13 @@ class App(Cmd):
             print('-'*80)
             self.cli_sleep(3)
 
-            print(self.t.underline_green('System installation is completed\n'))
+            print(self.t.underline_green('System installation is completed'))
             if le_certificate_installed == 0:
                 if not domain_is_ok:
-                    print('  There was a problem in registering new domain names for you system')
+                    print('  \nThere was a problem in registering new domain names for you system')
                     print('  Please get in touch with support@enigmabridge.com and we will try to resolve the problem')
             else:
-                print('  Trusted HTTPS certificate was not installed, most likely reason is port 443 being closed by a firewall')
+                print('  \nTrusted HTTPS certificate was not installed, most likely reason is port 443 being closed by a firewall')
                 print('  For more info please check https://enigmabridge.com/support/aws13073')
                 print('  We will keep re-trying every 5 minutes.')
                 print('\nMeantime, you can access the system at:')
