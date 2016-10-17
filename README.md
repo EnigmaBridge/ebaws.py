@@ -1,6 +1,29 @@
-##EnigmaBridge Amazon EC2 utils for EJBCA installation
+##EnigmaBridge Amazon EC2 utils for PKI
 
-This CLI installs a new EJBCA on EC2 instance. Specific AMI is required - with JBoss EAP installed.
+This CLI setups a new fresh EJBCA (PKI) installation on EC2 instance with a new [EnigmaBridge] identity.
+[EnigmaBridge] is integrated with EJBCA as a new PKCS#11 crypto token, you can start using it
+to securely store your root CA keys.
+
+The cli looks like the following:
+```
+--------------------------------------------------------------------------------
+    Enigma Bridge AWS command line interface (v0.0.12) 
+
+    usage - shows simple command list
+    init  - initializes the key management system
+
+    More info: https://enigmabridge.com/amazonpki 
+--------------------------------------------------------------------------------
+$> 
+```
+
+Specific AMI is required - with JBoss EAP & EJBCA installed.
+More information on image setup can be found in [IMG-INSTALL] page.
+
+## Init
+The init command starts a new fresh installation. If a previous installation is present
+it asks user whether to proceed, backups the old installation databases and config files
+and installs a new one.
 
 ## Troubleshooting
 Error in installation of dependencies (cryptography, pyOpenSSL):
@@ -42,4 +65,6 @@ pip install --user cryptography
 ```
 
 [100-named-groups]: https://community.letsencrypt.org/t/certbot-auto-fails-while-setting-up-virtual-environment-complains-about-package-hashes/20529/18
+[IMG-INSTALL]: https://github.com/EnigmaBridge/ebaws.py/blob/master/IMG-INSTALL.md
+[EnigmaBridge]: https://enigmabridge.com
 
