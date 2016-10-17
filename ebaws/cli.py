@@ -142,10 +142,7 @@ class App(Cmd):
                       % int(math.ceil(total_mem/1024/1024)))
 
                 print('New swap file will be installed in /var')
-                should_continue = self.ask_proceed(support_non_interactive=True)
-                if not should_continue:
-                    return self.return_code(1)
-
+                print('It will take approximately 2 minutes...')
                 code, swap_name, swap_size = syscfg.create_swap()
                 if code == 0:
                     print('\nNew swap file was created %s %d MB and activated' % (swap_name,int(math.ceil(total_mem/1024/1024))))
