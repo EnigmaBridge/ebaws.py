@@ -307,8 +307,8 @@ class App(Cmd):
                 print('WARNING: you will have to override web browser security alerts.')
 
             self.cli_sleep(3)
-            print('Please setup your computer for secure connections to your PKI key management system:')
-            self.cli_sleep(3)
+            print(self.t.underline('Please setup your computer for secure connections to your PKI key management system:'))
+            time.sleep(0.5)
 
             # Finalize, P12 file & final instructions
             new_p12 = ejbca.copy_p12_file()
