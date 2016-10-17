@@ -290,10 +290,11 @@ class App(Cmd):
             # LetsEncrypt enrollment
             le_certificate_installed = self.le_install(ejbca)
 
+            print('\n')
             print('-'*80)
             self.cli_sleep(3)
 
-            print(self.t.underline_green('System installation is completed'))
+            print(self.t.underline_green('[OK] System installation is completed'))
             if le_certificate_installed == 0:
                 if not domain_is_ok:
                     print('  \nThere was a problem in registering new domain names for you system')
@@ -307,6 +308,8 @@ class App(Cmd):
                 print('WARNING: you will have to override web browser security alerts.')
 
             self.cli_sleep(3)
+            print('-'*80)
+            print('')
             print(self.t.underline('Please setup your computer for secure connections to your PKI key management system:'))
             time.sleep(0.5)
 
