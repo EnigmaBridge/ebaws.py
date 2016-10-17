@@ -77,7 +77,11 @@ class App(Cmd):
     def do_dump_config(self, line):
         """Dumps the current configuration to the terminal"""
         config = Core.read_configuration()
-        print(config.to_string())
+        if config is None:
+            print('None configuration is stored.')
+            print('init was probably not called on this machine.')
+        else:
+            print(config.to_string())
 
     def do_usage(self, line):
         """Writes simple usage hints"""
