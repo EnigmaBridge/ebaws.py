@@ -6,6 +6,11 @@ Brief outline of the installation of the base AWS image needed for ebaws.py to w
 * Install [EJBCA] 6.3.1.1
 * Install [SoftHSM-EB] from RPMs
 
+## Ports
+
+* 443 for LetsEncrypt domain verification
+* 8443 for EJBCA admin interface
+
 ## JBoss installation
 
 * Download JBoss EAP installator
