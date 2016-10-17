@@ -44,6 +44,7 @@ class App(Cmd):
 
         self.noninteractive = False
         self.version = self.load_version()
+        self.first_run = self.is_first_run()
 
         self.t = Terminal()
         self.update_intro()
@@ -63,12 +64,23 @@ class App(Cmd):
             version = 'Trunk'
         return version
 
+    def is_first_run(self):
+        try:
+            config = Core.read_configuration()
+            return config is None or config.has_nonempty_config()
+        except:
+            return True
+
     def update_intro(self):
         self.intro = '-'*self.get_term_width() + \
                      ('\n    Enigma Bridge AWS command line interface (v%s) \n' % self.version) + \
                      '\n    usage - shows simple command list' + \
-                     '\n    init  - initializes the key management system\n' + \
-                     '\n    More info: https://enigmabridge.com/amazonpki \n' + \
+                     '\n    init  - initializes the key management system\n'
+
+        if self.first_run:
+            self.intro += '            run this when running for the first time\n'
+
+        self.intro += '\n    More info: https://enigmabridge.com/amazonpki \n' + \
                      '-'*self.get_term_width()
 
     def do_version(self, line):
