@@ -1,4 +1,4 @@
-# Connections made during the PKI installation
+# Network connections made during the PKI installation
 
 * Python pip modules update
   * Connects to `pypi.python.org`
@@ -11,13 +11,13 @@
     * instance-id (required, fraud detection, continuity)
     * instance-type (client stats, support - e.g., size of RAM, recommendation on num. of certs)
     * placement (client stats, latency stats)
-    * public-ipv4 (required)
-    * public-hostname (required)
+    * public-ipv4 (required - for dynamic DNS feature)
+    * public-hostname (required - for dynamic DNS feature)
 
 * Port test on 443
-  * Testing whether port 443 is open for the LetsEncrypt domain verification
-  * Script starts a simple TCP server on the `0.0.0.0:443`
-  * It tries to connect to the `public-ipv4:443`
+  * Testing whether port 443 is open for the LetsEncrypt domain verification.
+  * Script starts a simple TCP server on the `0.0.0.0:443`.
+  * It tries to connect to the `public-ipv4:443` from the localhost.
 
 * EnigmaBridge new identity generation
   * Connects to `hut6.enigmabridge.com:8445`
@@ -38,7 +38,7 @@
   * Once verified, certificate is downloaded
   
 * Test if 8443 is reachable on the `public-ipv4`
-  * Simple TCP connect to the `public-ipv4:8443` is made
+  * Simple TCP connect to the `public-ipv4:8443` is made from the localhost.
   
   
 
