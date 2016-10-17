@@ -25,7 +25,7 @@ ONBOOT_INIT_SCRIPT="""#!/bin/sh
 # chkconfig: - 80 20
 ### END INIT INFO
 
-SCRIPT="/usr/bin/ebaws -n onboot"
+SCRIPT="/usr/local/bin/ebaws-cli -n onboot"
 RUNAS=root
 
 PIDFILE=/var/run/ebaws-onboot.pid
