@@ -20,6 +20,9 @@
 #    Upload the signing certificate here: https://console.aws.amazon.com/iam/home
 #    Users -> <you> -> Security Credentials tab -> Manage signing certificates button -> Upload
 #
+#    Copy the credentials to the AMi for image building
+#    scp *.pem ami:/tmp/cert
+#
 # 3. scp the private key and certificate to the instance under /tmp/cert
 #
 #  - Optionally, if you dont have 2x $USED_SPACE of the free space on your /tmp:
