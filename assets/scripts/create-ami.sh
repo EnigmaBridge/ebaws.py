@@ -114,6 +114,7 @@ aws ec2 register-image --image-location enigma-ami/ejbca/ejbcav1/image.manifest.
 #
 aws ec2 create-volume --size 8 --region $AMI_REGION --availability-zone ${AMI_REGION}a --volume-type gp2
 
+# The command will produce a row like: "VolumeId": "vol-38fcf689", export the value to the env var.
 export VOLUME_ID=vol-xx1122
 
 # Attach the volume to the AMI
@@ -130,6 +131,8 @@ sudo partprobe /dev/sdb
 lsblk
 sudo mkdir -p /mnt/ebs
 sudo mount /dev/sdb1 /mnt/ebs
+
+# Remove file swap entry if you have it
 sudo vim /mnt/ebs/etc/fstab
 
 chroot /mnt/ebs/
@@ -149,6 +152,8 @@ aws ec2 detach-volume --volume-id $VOLUME_ID --region $AMI_REGION
 
 # Create snapshot for the AMI
 aws ec2 create-snapshot --region $AMI_REGION --description "EnigmaBridge-EJBCA" --volume-id $VOLUME_ID
+
+# The command will produce a row like: "SnapshotId": "snap-ef019d24", export the value to the env var.
 export SNAPSHOT_ID=snap-xx112233
 
 # Verify snapshot - wait until the progress is 100%
