@@ -15,9 +15,9 @@
     * public-hostname (required)
 
 * Port test on 443
-  * Testing whether port 443 is open for LetsEncrypt verification
-  * Starts a simple TCP server on the `0.0.0.0:443`
-  * Tries to connect to the `public-ipv4:443`
+  * Testing whether port 443 is open for the LetsEncrypt domain verification
+  * Script starts a simple TCP server on the `0.0.0.0:443`
+  * It tries to connect to the `public-ipv4:443`
 
 * EnigmaBridge new identity generation
   * Connects to `hut6.enigmabridge.com:8445`
