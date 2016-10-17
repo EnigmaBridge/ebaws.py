@@ -123,6 +123,46 @@ class App(Cmd):
         # Reinit
         email = self.ask_for_email()
         eb_cfg = Core.get_default_eb_config()
+
+        # Ask user explicitly if he wants to continue with the registration process.
+        # Terms & Conditions of the AMIs tells us to ask user whether we can connect to the servers.
+        print('')
+        print('-'*self.get_term_width())
+        print('\nThe installation is about to start.')
+        print('During the installation we collect the following ec2 metadata: ')
+        print('  - ami-id')
+        print('  - instance-id')
+        print('  - instance-type')
+        print('  - placement')
+        print('  - public-ipv4')
+        print('  - public-hostname')
+        print('')
+        print(self.wrap_term(single_string=True, max_width=80,
+                             text='The data above together with your e-mail address will be sent '
+                                  'to our EnigmaBridge registration server during the installation. Then we generate a '
+                                  'dynamic DNS hostname and a new EnigmaBridge user account for you. '
+                                  'The EnigmaBridge account is used to generate new RSA keys in the EnigmaBridge secure hardware '
+                                  'to boost your PKI security.'))
+        print('')
+        print(self.wrap_term(single_string=True, max_width=80,
+                             text='Moreover we provide you a static DNS host name that will work even after your IP address changes. '
+                                  'In order to access PKI administration web interface in a secure way we generate a LetsEncrypt '
+                                  'certificate for you on this domain. For this we need to communicate with the LetsEncrypt '
+                                  'certificate authority and TCP port 443 open on this host so they can check the domain validity.'))
+        print('')
+        print(self.wrap_term(single_string=True, max_width=80,
+                             text='The privacy policy and more details can be found here: https://enigmabridge.com/amazonpki'))
+        print('')
+        print(self.wrap_term(single_string=True, max_width=80,
+                             text='In order to continue with the installation we need your consent with the network '
+                                  'communication the instance will be doing during the installation as outlined in the description above'))
+
+        print('')
+        should_continue = self.ask_proceed('Do you agree with the installation process as outlined above? (Y/n): ', support_non_interactive=True)
+        if not should_continue:
+            return self.return_code(1)
+
+        print('-'*self.get_term_width())
         try:
             reg_svc = Registration(email=email, eb_config=eb_cfg)
             soft_config = SoftHsmV1Config()
