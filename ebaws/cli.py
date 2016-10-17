@@ -9,7 +9,7 @@ import pid
 import time
 import util
 import errors
-from blessings import Terminal
+from blessed import Terminal
 from consts import *
 from core import Core
 from registration import Registration, InfoLoader
