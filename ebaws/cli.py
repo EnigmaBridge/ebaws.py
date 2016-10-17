@@ -733,12 +733,20 @@ class App(Cmd):
                             help='number of attempts for pidlock acquire')
         parser.add_argument('--debug', dest='debug', action='store_const', const=True,
                             help='enables debug mode')
+        parser.add_argument('--verbose', dest='verbose', action='store_const', const=True,
+                            help='enables verbose mode')
         parser.add_argument('--force', dest='force', action='store_const', const=True, default=False,
                             help='forces some action (e.g., certificate renewal)')
         parser.add_argument('--email', dest='email', default=None,
                             help='email address to use instead of prompting for one')
+
         parser.add_argument('--yes', dest='yes', action='store_const', const=True,
                             help='answers yes to the questions in the non-interactive mode, mainly for init')
+
+        parser.add_argument('--no-self-upgrade', action='store_const', const=True,
+                            help='Inherited option from auto-update wrapper, no action here')
+        parser.add_argument('--os-packages-only', action='store_const', const=True,
+                            help='Inherited option from auto-update wrapper, no action here')
 
         parser.add_argument('commands', nargs=argparse.ZERO_OR_MORE, default=[],
                             help='commands to process')

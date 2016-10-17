@@ -14,7 +14,7 @@ Help for ebaws itself cannot be provided until it is installed.
 
   --debug                                   attempt experimental installation
   -h, --help                                print this help
-  -n, --non-interactive, --noninteractive   run without asking for user input
+  -n, --non-interactive,                    run without asking for user input
   --no-self-upgrade                         do not download updates
   --os-packages-only                        install OS dependencies and exit
   -v, --verbose                             provide more output
@@ -33,7 +33,7 @@ for arg in "$@" ; do
       NO_SELF_UPGRADE=1;;
     --help)
       HELP=1;;
-    --noninteractive|--non-interactive)
+    --non-interactive)
       ASSUME_YES=1;;
     --verbose)
       VERBOSE=1;;
@@ -52,7 +52,7 @@ for arg in "$@" ; do
 done
 
 # Upgrade step
-if [ NO_SELF_UPGRADE != 1 ]; then
+if [ "$NO_SELF_UPGRADE" != 1 ]; then
     echo "Checking for updates..."
     set +e
     PIP_OUT=`pip install --no-cache-dir --upgrade ebaws.py 2>&1`
