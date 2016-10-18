@@ -145,34 +145,42 @@ class App(Cmd):
         print('')
         print('-'*self.get_term_width())
         print('\nThe installation is about to start.')
-        print('During the installation we collect the following ec2 metadata: ')
+        print('During the installation we collect the following ec2 metadata for enrolment to Enigma Bridge CloudHSM: ')
         print('  - ami-id')
         print('  - instance-id')
         print('  - instance-type')
-        print('  - placement')
+        print('  - placement (AWS region)')
         print('  - public-ipv4')
         print('  - public-hostname')
         print('')
         print(self.wrap_term(single_string=True, max_width=80,
-                             text='The data above together with your e-mail address will be sent '
-                                  'to our EnigmaBridge registration server during the installation. Then we generate a '
-                                  'dynamic DNS hostname and a new EnigmaBridge user account for you. '
-                                  'The EnigmaBridge account is used to generate new RSA keys in the EnigmaBridge secure hardware '
-                                  'to boost your PKI security.'))
+                             text='We will send the data above with your e-mail address (if entered) '
+                                  'to our EnigmaBridge registration server during this initialization. We will use it to:'))
+        print('  - generate a dynamic DNS name (e.g., cambridge1.pki.enigmabridge.com);')
+        print('  - create a client account at the Enigma Bridge CloudHSM service.')
         print('')
         print(self.wrap_term(single_string=True, max_width=80,
-                             text='Moreover we provide you a static DNS host name that will work even after your IP address changes. '
-                                  'In order to access PKI administration web interface in a secure way we generate a LetsEncrypt '
-                                  'certificate for you on this domain. For this we need to communicate with the LetsEncrypt '
-                                  'certificate authority and TCP port 443 open on this host so they can check the domain validity.'))
+                             text='The Enigma Bridge account allows you access to secure hardware, which is used to '
+                                  'generate new RSA keys and use them securely to sign certificates, CRLs, and OCSP responses.'))
         print('')
         print(self.wrap_term(single_string=True, max_width=80,
-                             text='The privacy policy and more details can be found here: https://enigmabridge.com/amazonpki'))
+                             text='The static DNS name allows you securely access the PKI web interface as it will have'
+                                  'a valid browser-trusted HTTPS certificate as soon as this initialization is completed.'
+                                  'No more manual over-ride of untrusted certificates and security exceptions in your '
+                                  'browser.'
+                                  'We need to communicate with a public certification authority LetsEncrypt. LetsEncrypt'
+                                  'will verify a certificate request is genuine by connecting to port 443 on this '
+                                  'instance.'))
+        print('')
+        print(self.wrap_term(single_string=True, max_width=80,
+                             text='More details and our privacy policy can be found at: https://enigmabridge.com/amazonpki'))
         print('')
         print(self.wrap_term(single_string=True, max_width=80,
                              text='In order to continue with the installation we need your consent with the network '
                                   'communication the instance will be doing during the installation as outlined in the description above'))
 
+        print('')
+        print('')
         print('')
         should_continue = self.ask_proceed('Do you agree with the installation process as outlined above? (Y/n): ', support_non_interactive=True)
         if not should_continue:
