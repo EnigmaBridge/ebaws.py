@@ -33,6 +33,9 @@ Help for ebaws itself cannot be provided until it is installed.
 
 All arguments are accepted and forwarded to the EBAWS client when run."
 
+# Override of the prompting for update, we dont need it now
+ASSUME_YES=1
+
 for arg in "$@" ; do
   case "$arg" in
     --debug)
