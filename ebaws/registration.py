@@ -15,6 +15,7 @@ from ebclient.eb_registration import *
 from ebclient.registration import *
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
+import hashlib
 
 
 __author__ = 'dusanklinec'
@@ -120,6 +121,12 @@ class Registration(object):
         self.key_crypto = None
         self.crt_crypto = None
 
+        self.nonce_path = None
+        self.id_nonce = None
+
+        self.id_string = None
+        self.ami_details = None
+
         self.info_loader = InfoLoader()
         self.info_loader.load()
         pass
@@ -133,8 +140,14 @@ class Registration(object):
 
         self.key_path = os.path.join(id_dir, consts.IDENTITY_KEY)
         self.crt_path = os.path.join(id_dir, consts.IDENTITY_CRT)
+        self.nonce_path = os.path.join(id_dir, consts.IDENTITY_NONCE)
         util.delete_file_backup(self.key_path, 0o600, backup_dir=backup_dir)
         util.delete_file_backup(self.crt_path, 0o600, backup_dir=backup_dir)
+        util.delete_file_backup(self.nonce_path, 0o600, backup_dir=backup_dir)
+
+        # Generate identity nonce - random bytes
+        self.id_nonce = get_random_vector(64)
+        self.id_string = self.anonymize_instance_id(self.info_loader.ami_instance_id)
 
         # Generate new private key, 2048bit
         self.key = OpenSSL.crypto.PKey()
@@ -144,7 +157,7 @@ class Registration(object):
         self.key_py = util.load_pem_private_key_pycrypto(self.key_pem)
 
         # Generate certificate
-        id_to_use = identities if identities is not None else [self.info_loader.ami_instance_id]
+        id_to_use = identities if identities is not None else [self.id_string]
         self.crt = util.gen_ss_cert(self.key, id_to_use, validity=(25 * 365 * 24 * 60 * 60))
         self.crt_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, self.crt)
         self.crt_crypto = util.load_x509(self.crt_pem)
@@ -153,6 +166,8 @@ class Registration(object):
             crt_file.write(self.crt_pem)
         with util.safe_open(self.key_path, 'wb', chmod=0o600) as key_file:
             key_file.write(self.key_pem)
+        with util.safe_open(self.nonce_path, 'wb', chmod=0o600) as nonce_file:
+            nonce_file.write(self.id_nonce)
 
         return self.key, self.crt, self.key_path, self.crt_path
 
@@ -190,12 +205,16 @@ class Registration(object):
         if self.eb_config is None:
             self.eb_config = Core.get_default_eb_config()
 
+        # Ami details anonymization
+        self.ami_details = self.info_loader.ami_results
+        self.ami_details[InfoLoader.AMI_KEY_INSTANCE_ID] = self.id_string
+
         client_data_reg = {
-            'name': self.info_loader.ami_instance_id,
+            'name': self.id_string,
             'authentication': 'type',
             'type': 'test',
             'token': 'LSQJCHT61VTEMFQBZADO',
-            'ami': self.info_loader.ami_results,
+            'ami': self.ami_details,
             'email': self.email
         }
 
@@ -340,4 +359,19 @@ class Registration(object):
                 continue
             result += line
         return result
+
+    def anonymize_instance_id(self, instance_id):
+        return self.anonymize_param('instance-id', instance_id)
+
+    def anonymize_param(self, param_name, param_value):
+        m = hashlib.sha256()
+        m.update('paramhash;')
+        m.update(self.id_nonce)
+        m.update(';')
+        m.update(param_name)
+        m.update(';')
+        m.update(param_value)
+        digest = m.digest()
+        return base64.b16encode(digest)
+
 

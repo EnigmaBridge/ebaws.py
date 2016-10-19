@@ -4,6 +4,7 @@ CONFIG_DIR_OLD='/etc/enigma.old'
 CONFIG_FILE='config.json'
 IDENTITY_KEY='key.pem'
 IDENTITY_CRT='crt.pem'
+IDENTITY_NONCE='nonce.data'
 
 SERVER_PROCESS_DATA='process_data'
 SERVER_ENROLLMENT='enrollment'
