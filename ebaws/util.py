@@ -722,7 +722,13 @@ def test_port_open(host='127.0.0.1', port=80, timeout=15, attempts=3):
 class DummyTCPHandler(socketserver.BaseRequestHandler):
     """Handler for a dummy socket server for firewall testing"""
     def handle(self):
-        self.request.recv(1024).strip()
+        try:
+            read_data = self.request.recv(1024).strip()
+            if read_data is not None and len(read_data) > 0:
+                self.request.sendall(read_data.upper())
+        except:
+            pass
+
     pass
 
 
