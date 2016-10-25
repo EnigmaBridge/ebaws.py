@@ -15,7 +15,6 @@ from ebclient.eb_registration import *
 from ebclient.registration import *
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
-import hashlib
 
 
 __author__ = 'dusanklinec'
@@ -364,10 +363,7 @@ class Registration(object):
         return self.anonymize_param('instance-id', instance_id)
 
     def anonymize_param(self, param_name, param_value):
-        m = hashlib.sha256()
-        m.update('paramhash;')
-        m.update(self.id_nonce)
-        m.update(';')
+        m = util.hmac_obj(self.id_nonce, 'paramhash;')
         m.update(param_name)
         m.update(';')
         m.update(param_value)

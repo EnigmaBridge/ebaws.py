@@ -29,6 +29,8 @@ import time
 import types
 import socketserver
 import threading
+import hashlib
+import hmac
 
 
 logger = logging.getLogger(__name__)
@@ -698,6 +700,10 @@ def silent_close(c):
             c.close()
     except:
         pass
+
+
+def hmac_obj(key, data):
+    return hmac.new(key, data, hashlib.sha256)
 
 
 def test_port_open(host='127.0.0.1', port=80, timeout=15, attempts=3, test_upper_read_write=True):

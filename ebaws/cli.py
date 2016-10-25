@@ -147,7 +147,7 @@ class App(Cmd):
         print('\nThe installation is about to start.')
         print('During the installation we collect the following ec2 metadata for enrolment to Enigma Bridge CloudHSM: ')
         print('  - ami-id')
-        print('  - instance-id (anonymized, hash)')
+        print('  - instance-id (anonymized, HMAC)')
         print('  - instance-type')
         print('  - placement (AWS region)')
         print('  - public-ipv4')
