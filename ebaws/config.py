@@ -233,6 +233,14 @@ class Config(object):
     def last_ipv4(self, val):
         self.set_config('last_ipv4', val)
 
+    # Last private IPv4
+    @property
+    def last_ipv4_private(self):
+        return self.get_config('last_ipv4_private')
+
+    @last_ipv4_private.setter
+    def last_ipv4_private(self, val):
+        self.set_config('last_ipv4_private', val)
     # process endpoint
     @property
     def endpoint_process(self):

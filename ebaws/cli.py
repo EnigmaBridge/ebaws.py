@@ -150,6 +150,7 @@ class App(Cmd):
         print('  - instance-id (anonymized, HMAC)')
         print('  - instance-type')
         print('  - placement (AWS region)')
+        print('  - local-ipv4')
         print('  - public-ipv4')
         print('  - public-hostname')
         print('')

@@ -65,7 +65,7 @@ class InfoLoader(object):
         # removed options:
         # -o local ip
         # -c product codes
-        out, err = util.run_script([self.ec2_metadata_executable] + ('-a -i -t -z -v -p'.split(' ')))
+        out, err = util.run_script([self.ec2_metadata_executable] + ('-a -i -t -z -v -p -o'.split(' ')))
 
         lines = [x.strip() for x in out.split('\n')]
         self.ami_results = {}
@@ -348,6 +348,7 @@ class Registration(object):
 
         self.config.domains = domains
         self.config.last_ipv4 = self.info_loader.ami_public_ip
+        self.config.last_ipv4_private = self.info_loader.ami_local_ip
         return self.config
 
     def get_cert_pem_json(self):
