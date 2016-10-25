@@ -481,10 +481,10 @@ def cli_cmd_sync(cmd, log_obj=None, write_dots=False, on_out=None, on_err=None, 
                     sys.stderr.write('.')
 
                 if on_out is not None:
-                    on_out(out, feeder)
+                    on_out(out, feeder, p)
 
             # Collect error
-            if err is not None and len(err)>0:
+            if err is not None and len(err) > 0:
                 err_acc.append(err)
 
                 if log is not None:
@@ -495,7 +495,7 @@ def cli_cmd_sync(cmd, log_obj=None, write_dots=False, on_out=None, on_err=None, 
                     sys.stderr.write('.')
 
                 if on_err is not None:
-                    on_err(err, feeder)
+                    on_err(err, feeder, p)
 
             p.commands[0].poll()
             time.sleep(0.01)
@@ -511,7 +511,7 @@ def cli_cmd_sync(cmd, log_obj=None, write_dots=False, on_out=None, on_err=None, 
                     log.write(out)
                     log.flush()
                 if on_out is not None:
-                    on_out(out, feeder)
+                    on_out(out, feeder, p)
 
         # Collect error to accumulator
         rest_err = p.stderr.readlines()
@@ -522,7 +522,7 @@ def cli_cmd_sync(cmd, log_obj=None, write_dots=False, on_out=None, on_err=None, 
                     log.write(err)
                     log.flush()
                 if on_err is not None:
-                    on_err(err, feeder)
+                    on_err(err, feeder, p)
 
         return ret_code, out_acc, err_acc
 

@@ -249,14 +249,14 @@ class Ejbca(object):
     def ant_deployear(self):
         return self.ant_cmd('deployear', log_obj='/tmp/ant-deployear.log', write_dots=self.print_output)
 
-    def ant_answer(self, out, feeder):
+    def ant_answer(self, out, feeder, p=None, *args, **kwargs):
         out = out.strip()
         if out.startswith('Please enter'):            # default - use default value, no starving
             feeder.feed('\n')
         elif out.startswith('[input] Please enter'):  # default - use default value, no starving
             feeder.feed('\n')
 
-    def ant_install_answer(self, out, feeder):
+    def ant_install_answer(self, out, feeder, p=None, *args, **kwargs):
         out = out.strip()
         if 'truststore with the CA certificate for https' in out:
             feeder.feed(self.java_pass + '\n')
@@ -547,7 +547,7 @@ class Ejbca(object):
 
         return ret, out, err
 
-    def pkcs11_answer(self, out, feeder):
+    def pkcs11_answer(self, out, feeder, p=None, *args, **kwargs):
         out = out.strip()
         if 'Password:' in out:
             feeder.feed('0000')
