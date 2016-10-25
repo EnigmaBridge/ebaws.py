@@ -692,7 +692,15 @@ def get_utc_sec():
     return time.time()
 
 
-def test_port_open(host='127.0.0.1', port=80, timeout=15, attempts=3):
+def silent_close(c):
+    try:
+        if c is not None:
+            c.close()
+    except:
+        pass
+
+
+def test_port_open(host='127.0.0.1', port=80, timeout=15, attempts=3, test_upper_read_write=True):
     """
     Test if the given port is open on the TCP.
 
@@ -704,9 +712,22 @@ def test_port_open(host='127.0.0.1', port=80, timeout=15, attempts=3):
     """
     idx = 0
     while idx < attempts:
+        sock = None
         try:
             sock = socket.create_connection((host, port), timeout=timeout)
-            sock.close()
+
+            # read/write test on the dummy server - our.
+            if test_upper_read_write:
+                random_nonce = 'ebaws-letsencrypt-test-' + (random_password(20).lower())
+                sock.sendall(random_nonce)
+                read_data = sock.recv(4096)
+                if read_data is None or len(read_data) == 0:
+                    raise ValueError('Data read from the socket is empty')
+                if read_data.strip() != random_nonce.upper().strip():
+                    raise ValueError('Data read from the socket do not match the expectations')
+            
+            silent_close(sock)
+            sock = None
             return True
 
         except:
@@ -715,6 +736,7 @@ def test_port_open(host='127.0.0.1', port=80, timeout=15, attempts=3):
 
         finally:
             idx += 1
+            silent_close(sock)
 
     return False
 
