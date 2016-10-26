@@ -166,9 +166,9 @@ class App(Cmd):
         print('')
         print(self.wrap_term(single_string=True, max_width=80,
                              text='The static DNS name allows you securely access the PKI web interface as it will have'
-                                  'a valid browser-trusted HTTPS certificate as soon as this initialization is completed.'
+                                  'a valid browser-trusted HTTPS certificate as soon as this initialization is completed. '
                                   'No more manual over-ride of untrusted certificates and security exceptions in your '
-                                  'browser.'
+                                  'browser. '
                                   'We need to communicate with a public certification authority LetsEncrypt. LetsEncrypt'
                                   'will verify a certificate request is genuine by connecting to port 443 on this '
                                   'instance.'))
@@ -626,7 +626,7 @@ class App(Cmd):
         if ret == 0:
             Core.write_configuration(ejbca.config)
             ejbca.jboss_reload()
-            print('\nPublicly trusted certificate installed (issued by LetsEncrypt')
+            print('\nPublicly trusted certificate installed (issued by LetsEncrypt)')
 
         else:
             print('\nFailed to install publicly trusted certificate, self-signed certificate will be used instead, code=%s.' % ret)
