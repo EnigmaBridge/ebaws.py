@@ -255,10 +255,12 @@ class LetsEncrypt(object):
     CA = LE_CA
     FALLBACK_EMAIL = 'letsencrypt_support@enigmabridge.com'
 
-    def __init__(self, email=None, domains=None, print_output=False, *args, **kwargs):
+    def __init__(self, email=None, domains=None, print_output=False, staging=False, debug=False, *args, **kwargs):
         self.email = email
         self.domains = domains
         self.print_output = print_output
+        self.staging = staging
+        self.debug = debug
 
     def certonly(self, email=None, domains=None, expand=False):
         if email is not None:
@@ -271,7 +273,7 @@ class LetsEncrypt(object):
                 and self.FALLBACK_EMAIL is not None and len(self.FALLBACK_EMAIL) > 0:
             email = self.FALLBACK_EMAIL
 
-        cmd = self.get_standalone_cmd(self.domains, email=email, expand=expand)
+        cmd = self.get_standalone_cmd(self.domains, email=email, expand=expand, staging=self.staging)
         cmd_exec = 'sudo -E -H %s %s' % (self.CERTBOT_PATH, cmd)
         log_obj = self.CERTBOT_LOG
 
@@ -293,7 +295,7 @@ class LetsEncrypt(object):
                 and self.FALLBACK_EMAIL is not None and len(self.FALLBACK_EMAIL) > 0:
             email = self.FALLBACK_EMAIL
 
-        cmd = self.get_manual_dns(self.domains, email=email, expand=expand)
+        cmd = self.get_manual_dns(self.domains, email=email, expand=expand, staging=self.staging)
         cmd_exec = 'sudo -E -H %s %s' % (self.CERTBOT_PATH, cmd)
         log_obj = self.CERTBOT_LOG
 
@@ -398,7 +400,7 @@ class LetsEncrypt(object):
             sys.stderr.write(msg)
 
     @staticmethod
-    def get_standalone_cmd(domain, email=None, expand=False):
+    def get_standalone_cmd(domain, email=None, expand=False, staging=False):
         cmd_email_part = LetsEncrypt.get_email_cmd(email)
 
         domains = domain if isinstance(domain, types.ListType) else [domain]
@@ -406,12 +408,14 @@ class LetsEncrypt(object):
         cmd_domains_part = ' -d ' + (' -d '.join(domains))
 
         cmd_expand_part = '' if not expand else ' --expand '
+        cmd_staging = LetsEncrypt.get_staging_cmd(staging)
 
-        cmd = 'certonly --standalone --text -n --agree-tos %s %s %s' % (cmd_email_part, cmd_expand_part, cmd_domains_part)
+        cmd = 'certonly --standalone --text -n --agree-tos %s %s %s %s' \
+              % (cmd_email_part, cmd_expand_part, cmd_staging, cmd_domains_part)
         return cmd
 
     @staticmethod
-    def get_manual_dns(domain, email=None, expand=True):
+    def get_manual_dns(domain, email=None, expand=True, staging=False):
         """
         Non-interactive mode is not yet supported with the manual authenticator.
 
@@ -427,12 +431,13 @@ class LetsEncrypt(object):
         cmd_domains_part = ' -d ' + (' -d '.join(domains))
 
         cmd_expand_part = '' if not expand else ' --expand --renew-by-default '
+        cmd_staging = LetsEncrypt.get_staging_cmd(staging)
 
         cmd = 'certonly --text --agree-tos ' \
               '-a certbot-external-auth:out ' \
               '--certbot-external-auth:out-public-ip-logging-ok ' \
-              '--preferred-challenges dns %s %s %s' % \
-              (cmd_email_part, cmd_expand_part, cmd_domains_part)
+              '--preferred-challenges dns %s %s %s %s' % \
+              (cmd_email_part, cmd_expand_part, cmd_staging,  cmd_domains_part)
         return cmd
 
     @staticmethod
@@ -448,4 +453,12 @@ class LetsEncrypt(object):
         if len(email) > 0:
             cmd = '--email ' + email
         return cmd
+
+    @staticmethod
+    def get_staging_cmd(staging=False):
+        if staging:
+            return ' --staging '
+        else:
+            return ' '
+
 
