@@ -265,7 +265,7 @@ class Config(object):
     # VPC ?
     @property
     def is_private_network(self):
-        return self.get_config('is_private_network')
+        return self.get_config('is_private_network', default=False)
 
     @is_private_network.setter
     def is_private_network(self, val):
