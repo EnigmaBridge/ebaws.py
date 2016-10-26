@@ -13,6 +13,10 @@ SERVER_REGISTRATION='registration'
 PROTOCOL_HTTPS='https'
 PROTOCOL_RAW='tcp'
 
+LE_VERIFY_DNS = 'dns'
+LE_VERIFY_TLSSNI = 'tlssni'
+LE_VERIFY_DEFAULT = LE_VERIFY_TLSSNI
+
 EC2META_FILES=['/opt/aws/bin/ec2-metadata']
 
 ONBOOT_INIT_SCRIPT="""#!/bin/sh
