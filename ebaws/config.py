@@ -241,6 +241,16 @@ class Config(object):
     @last_ipv4_private.setter
     def last_ipv4_private(self, val):
         self.set_config('last_ipv4_private', val)
+
+    # VPC ?
+    @property
+    def is_private_network(self):
+        return self.get_config('is_private_network')
+
+    @is_private_network.setter
+    def is_private_network(self, val):
+        self.set_config('is_private_network', val)
+
     # process endpoint
     @property
     def endpoint_process(self):
