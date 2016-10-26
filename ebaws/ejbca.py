@@ -652,7 +652,7 @@ class Ejbca(object):
         Renews LetsEncrypt certificate
         :return: 0 if certificate was renewed and JKS recreated, 1 if OK but no renewal was needed, error otherwise
         """
-        self.lets_encrypt = letsencrypt.LetsEncrypt(email=self.config.email, domains=self.hostname, print_output=self.print_output)
+        self.lets_encrypt = letsencrypt.LetsEncrypt(email=self.config.email, domains=self.domains, print_output=self.print_output)
         if self.lets_encrypt.is_certificate_ready(domain=self.hostname) != 0:
             return 2
 
