@@ -601,7 +601,7 @@ class App(Cmd):
         print('Check successful: %s' % ('yes' if port_ok else 'no'))
         return self.return_code(0 if port_ok else 1)
 
-    def le_check_port(self, ip=None, letsencrypt=None, critical=False):
+    def le_check_port(self, ip=None, letsencrypt=None, critical=False, one_attempt=False):
         if ip is None:
             info = InfoLoader()
             info.load()
@@ -616,7 +616,7 @@ class App(Cmd):
 
         # This is the place to simulate VPC during install
         if self.debug_simulate_vpc:
-            ok=False
+            ok = False
 
         if ok:
             self.last_le_port_open = True
@@ -625,7 +625,7 @@ class App(Cmd):
         print('\nLetsEncrypt port %d is firewalled, please make sure it is reachable on the public interface %s' % (letsencrypt.PORT, ip))
         print('Please check AWS Security Groups - Inbound firewall rules for TCP port %d' % (letsencrypt.PORT))
 
-        if self.noninteractive:
+        if self.noninteractive or one_attempt:
             return False
 
         if critical:
