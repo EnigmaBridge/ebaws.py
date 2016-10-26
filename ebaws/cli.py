@@ -642,6 +642,8 @@ class App(Cmd):
 
                 # Test again
                 ok = letsencrypt.test_port_open(ip=ip)
+                if self.debug_simulate_vpc:
+                    ok = False
                 if ok:
                     self.last_le_port_open = True
                     return True
