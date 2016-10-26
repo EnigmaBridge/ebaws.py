@@ -283,7 +283,7 @@ class LetsEncrypt(object):
         """
         server = util.DummyTCPServer(('0.0.0.0', self.PORT))
         with server.start():
-            time.sleep(0.5)
+            time.sleep(1.5)
             return util.test_port_open(ip, self.PORT, timeout=timeout, attempts=attempts)
         pass
 

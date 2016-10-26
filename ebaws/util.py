@@ -724,7 +724,8 @@ def test_port_open(host='127.0.0.1', port=80, timeout=15, attempts=3, test_upper
 
             # read/write test on the dummy server - our.
             if test_upper_read_write:
-                random_nonce = 'ebaws-letsencrypt-test-' + (random_password(20).lower())
+                random_nonce = 'ebaws-letsencrypt-test-' + (random_password(32).lower())
+
                 sock.sendall(random_nonce)
                 read_data = sock.recv(4096)
                 if read_data is None or len(read_data) == 0:
@@ -766,8 +767,9 @@ class DummyTCPServer(object):
     Server is started in a new thread so it does not block.
     """
     def __init__(self, address):
+        socketserver.TCPServer.allow_reuse_address = True
         self.address = address
-        self.server = socketserver.TCPServer(self.address, DummyTCPHandler)
+        self.server = socketserver.TCPServer(self.address, DummyTCPHandler, False)
         self.thread = None
 
     def start(self):
@@ -775,6 +777,10 @@ class DummyTCPServer(object):
         Starts the server in the separate thread (async)
         :return:
         """
+        self.server.allow_reuse_address = True
+        self.server.server_bind()     # Manually bind, to support allow_reuse_address
+        self.server.server_activate() #
+
         self.thread = threading.Thread(target=self.server.serve_forever)
         self.thread.setDaemon(True)
         self.thread.start()
@@ -782,7 +788,7 @@ class DummyTCPServer(object):
 
     def close(self):
         """
-        Shutsdown the server
+        Shuts down the server
         :return:
         """
         try:
