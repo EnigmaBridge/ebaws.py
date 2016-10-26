@@ -283,14 +283,40 @@ class Registration(object):
         self.config.nsdomain = resp['domain']
         return self.config
 
-    def refresh_domain(self):
+    def refresh_domain(self, ip_to_use=None, dns_data=None):
         """
         Attempts to refresh previously assigned domain after AWS restart
         Modifies self.config with returned domains
         :return:
         """
+        resp_update = self.refresh_domain_call(ip_to_use=ip_to_use, dns_data=dns_data)
+
+        # Sort the domains by the key (length, lexicographic)
+        domains = resp_update['domains']
+        domains.sort()
+        domains.sort(key=len, reverse=True)
+
+        self.config.domains = domains
+        self.config.last_ipv4 = self.info_loader.ami_public_ip
+        self.config.last_ipv4_private = self.info_loader.ami_local_ip
+        return self.config
+
+    def refresh_domain_call(self, ip_to_use=None, dns_data=None):
+        """
+        Basic DNS call - request for a new DNS name allocation or the refresh.
+        :return: resp_update from the UpdateDomainRequest
+        """
+
+        # In case of the private network, public address is not usable.
+        if ip_to_use is None:
+            if self.config.is_private_network:
+                ip_to_use = self.info_loader.ami_local_ip
+            else:
+                ip_to_use = self.info_loader.ami_public_ip
+
+        # Request config.
         api_data_req_body = {
-            'ipv4': self.info_loader.ami_public_ip,
+            'ipv4': ip_to_use,
             'username': self.config.username,
             'apikey': self.config.apikey
         }
@@ -313,6 +339,9 @@ class Registration(object):
             'authentication': auth_type,
             'response': challenge_response
         }
+
+        if dns_data is not None:
+            api_data_req['dnsdata'] = dns_data
 
         payload = base64.b64encode(json.dumps(api_data_req))
         signer = self.key_crypto.signer(padding=padding.PKCS1v15(), algorithm=hashes.SHA256())
@@ -341,16 +370,36 @@ class Registration(object):
 
         if 'domains' not in resp_update:
             raise InvalidResponse('domains not in the response')
+        return resp_update
 
-        # Sort the domains by the key (length, lexicographic)
-        domains = resp_update['domains']
-        domains.sort()
-        domains.sort(key=len, reverse=True)
+    def txt_le_validation_dns_data(self, domain_token_list):
+        """
+        Generates DNS data for LetsEncrypt DNS TXT domain validation
+        for the given list of (domain, TXT) record pair list.
+        :param domain_token_list:
+        :return:
+        """
+        if not isinstance(domain_token_list, types.ListType):
+            domain_token_list = [domain_token_list]
 
-        self.config.domains = domains
-        self.config.last_ipv4 = self.info_loader.ami_public_ip
-        self.config.last_ipv4_private = self.info_loader.ami_local_ip
-        return self.config
+        dns_data = []
+        for pair in domain_token_list:
+            if not isinstance(pair, types.TupleType):
+                raise ValueError('txt_le_validation_dns_data expects a pair or list of pairs')
+
+            domain, txt = pair[0], pair[1]
+            cur = {
+                'type': 'TXT',
+                'name': '_acme-challenge',
+                'value': txt,
+            }
+
+            if domain is not None:
+                cur['domain'] = domain
+
+            dns_data.append(cur)
+
+        return dns_data
 
     def get_cert_pem_json(self):
         """

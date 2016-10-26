@@ -20,7 +20,9 @@ install_requires = [
     'pid>=2.0.1',
     'blessed>=1.14.1',
     'six',
-    'future'
+    'future',
+    'certbot',
+    'certbot-external-auth'
 ]
 
 # env markers in extras_require cause problems with older pip: #517

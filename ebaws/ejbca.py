@@ -92,6 +92,7 @@ class Ejbca(object):
 
         self.eb_config = eb_config
         self.config = config
+        self.reg_svc = None
 
         self.ejbca_install_result = 1
         pass
@@ -603,6 +604,33 @@ class Ejbca(object):
     def get_keystore_path(self):
         return os.path.abspath(os.path.join(self.get_jboss_home(), self.JBOSS_KEYSTORE))
 
+    def le_dns(self, domain=None, token=None, mdns=None, p=None, done=None, abort=None, *args, **kwargs):
+        """
+        DNS challenge solver for LE DNS verification
+        :param domain:
+        :param token:
+        :param mdns:
+        :param p:
+        :param abort:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        if domain is None or token is None:
+            raise ValueError('Domain or token is none')
+        if done is None:
+            raise ValueError('Cannot signalize done - its None')
+
+        # Prepare DNS TXT data for LE
+        domain_parts = domain.split('.', 1)
+        dns_data = self.reg_svc.txt_le_validation_dns_data((domain_parts[1], token))
+
+        # Update domain DNS settings
+        self.reg_svc.refresh_domain_call(dns_data=dns_data)
+
+        # Call done callback
+        done()
+
     def le_enroll(self):
         """
         Enrolls to LetsEncrypt with specified domains
@@ -621,7 +649,14 @@ class Ejbca(object):
             raise ValueError('Hostname not in domains, should not happen')
 
         self.lets_encrypt = letsencrypt.LetsEncrypt(email=self.config.email, domains=self.domains, print_output=self.print_output)
-        ret, out, err = self.lets_encrypt.certonly()
+
+        ret, out, err = -1, None, None
+        if self.config.is_private_network:
+            mdns = self.lets_encrypt.manual_dns(expand=True, on_domain_challenge=self.le_dns)
+            ret, out, err = mdns.start()
+        else:
+            ret, out, err = self.lets_encrypt.certonly()
+
         if ret != 0:
             return 2
 
@@ -660,7 +695,13 @@ class Ejbca(object):
         cert_time_before = util.get_file_mtime(cert_file)
 
         # Call letsencrypt renewal
-        ret, out, err = self.lets_encrypt.renew()
+        ret, out, err = -1, None, None
+        if self.config.is_private_network:
+            mdns = self.lets_encrypt.manual_dns(expand=True, on_domain_challenge=self.le_dns)
+            ret, out, err = mdns.start()
+        else:
+            ret, out, err = self.lets_encrypt.renew()
+
         if ret != 0:
             return 3
 

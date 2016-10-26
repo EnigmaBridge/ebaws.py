@@ -41,10 +41,14 @@ class App(Cmd):
         self.core = Core()
         self.args = None
         self.last_result = 0
+        self.last_le_port_open = False
+        self.last_is_vpc = False
 
         self.noninteractive = False
         self.version = self.load_version()
         self.first_run = self.is_first_run()
+
+        self.debug_simulate_vpc = False
 
         self.t = Terminal()
         self.update_intro()
@@ -165,13 +169,13 @@ class App(Cmd):
                                   'generate new RSA keys and use them securely to sign certificates, CRLs, and OCSP responses.'))
         print('')
         print(self.wrap_term(single_string=True, max_width=80,
-                             text='The static DNS name allows you securely access the PKI web interface as it will have'
+                             text='The static DNS name allows you securely access the PKI web interface as it will have '
                                   'a valid browser-trusted HTTPS certificate as soon as this initialization is completed. '
                                   'No more manual over-ride of untrusted certificates and security exceptions in your '
                                   'browser. '
-                                  'We need to communicate with a public certification authority LetsEncrypt. LetsEncrypt'
-                                  'will verify a certificate request is genuine by connecting to port 443 on this '
-                                  'instance.'))
+                                  'We need to communicate with a public certification authority LetsEncrypt. LetsEncrypt '
+                                  'will verify a certificate request is genuine either by connecting to port 443 on this '
+                                  'instance or by DNS challenge on the domain if 443 is blocked.'))
         print('')
         print(self.wrap_term(single_string=True, max_width=80,
                              text='More details and our privacy policy can be found at: https://enigmabridge.com/amazonpki'))
@@ -180,8 +184,6 @@ class App(Cmd):
                              text='In order to continue with the installation we need your consent with the network '
                                   'communication the instance will be doing during the installation as outlined in the description above'))
 
-        print('')
-        print('')
         print('')
         should_continue = self.ask_proceed('Do you agree with the installation process as outlined above? (Y/n): ', support_non_interactive=True)
         if not should_continue:
@@ -227,6 +229,12 @@ class App(Cmd):
             if not port_ok:
                 return self.return_code(10)
 
+            # Is it VPC?
+            if not self.last_le_port_open:
+                print('\n - You are probably behind NAT, in a virtual private cloud (VPC) or firewalled by other means')
+                print(' - LetsEncrypt can work via DNS validation if port 443 is not available, I will use this way now')
+                self.last_is_vpc = True
+
             # Creates a new RSA key-pair identity
             # Identity relates to bound DNS names and username.
             # Requests for DNS manipulation need to be signed with the private key.
@@ -237,6 +245,7 @@ class App(Cmd):
 
             # Custom hostname for EJBCA - not yet supported
             new_config.ejbca_hostname_custom = False
+            new_config.is_private_network = self.last_is_vpc
 
             # Assign a new dynamic domain for the host
             domain_is_ok = False
@@ -430,8 +439,20 @@ class App(Cmd):
             return self.return_code(1)
 
         # If there is no hostname, enrollment probably failed.
+        eb_cfg = Core.get_default_eb_config()
+
+        # Registration - for domain updates. Identity should already exist.
+        reg_svc = Registration(email=config.email, eb_config=eb_cfg, config=config, debug=self.args.debug)
+        ret = reg_svc.load_identity()
+        if ret != 0:
+                print('\nError! Could not load identity (key-pair is missing)')
+                return self.return_code(3)
+
+        # EJBCA
         ejbca = Ejbca(print_output=True, jks_pass=config.ejbca_jks_password, config=config)
         ejbca.set_domains(config.ejbca_domains)
+        ejbca.reg_svc = reg_svc
+
         ejbca_host = ejbca.hostname
 
         le_test = LetsEncrypt()
@@ -443,10 +464,13 @@ class App(Cmd):
         if not enroll_new_cert:
             enroll_new_cert = le_test.is_certificate_ready(domain=ejbca_host) != 0
 
-        # Test LetsEncrypt port
-        port_ok = self.le_check_port(critical=True)
-        if not port_ok:
-            return self.return_code(10)
+        # Test LetsEncrypt port - only if in non-private network
+        if not config.is_private_network:
+            port_ok = self.le_check_port(critical=True)
+            if not port_ok:
+                return self.return_code(10)
+        else:
+            print('Installation done on private network, skipping TCP port 443 check\n')
 
         ret = 0
         if enroll_new_cert:
@@ -488,9 +512,14 @@ class App(Cmd):
                 return self.return_code(3)
 
             # IP has changed?
-            if config.last_ipv4 is not None:
-                print('Last IPv4 used for domain registration: %s' % config.last_ipv4)
-            print('Current IPv4: %s' % reg_svc.info_loader.ami_public_ip)
+            if config.is_private_network:
+                if config.last_ipv4_private is not None:
+                    print('Last local IPv4 used for domain registration: %s' % config.last_ipv4_private)
+                print('Current local IPv4: %s' % reg_svc.info_loader.ami_local_ip)
+            else:
+                if config.last_ipv4 is not None:
+                    print('Last IPv4 used for domain registration: %s' % config.last_ipv4)
+                print('Current IPv4: %s' % reg_svc.info_loader.ami_public_ip)
 
             # Assign a new dynamic domain for the host
             domain_is_ok = False
@@ -527,6 +556,7 @@ class App(Cmd):
                 return self.return_code(1)
 
             new_config.last_ipv4 = reg_svc.info_loader.ami_public_ip
+            new_config.last_ipv4_private = reg_svc.info_loader.ami_local_ip
 
             # Is original hostname used in the EJBCA in domains?
             if new_config.ejbca_hostname is not None \
@@ -580,22 +610,34 @@ class App(Cmd):
         print('\nDone.')
         return self.return_code(0)
 
+    def do_test443(self, line):
+        """Tests LetsEncrypt 443 port"""
+        port_ok = self.le_check_port(critical=True)
+        print('Check successful: %s' % ('yes' if port_ok else 'no'))
+        return self.return_code(0 if port_ok else 1)
+
     def le_check_port(self, ip=None, letsencrypt=None, critical=False):
         if ip is None:
             info = InfoLoader()
             info.load()
             ip = info.ami_public_ip
 
+        self.last_le_port_open = False
         if letsencrypt is None:
             letsencrypt = LetsEncrypt()
 
         print('\nChecking if port %d is open for LetsEncrypt, ip: %s' % (letsencrypt.PORT, ip))
         ok = letsencrypt.test_port_open(ip=ip)
+
+        # This is the place to simulate VPC during install
+        if self.debug_simulate_vpc:
+            ok=False
+
         if ok:
+            self.last_le_port_open = True
             return True
 
         print('\nLetsEncrypt port %d is firewalled, please make sure it is reachable on the public interface %s' % (letsencrypt.PORT, ip))
-        print('Without port 443 enabled LetsEncrypt cannot verify you own the domain so certificate won\'t be issued.')
         print('Please check AWS Security Groups - Inbound firewall rules for TCP port %d' % (letsencrypt.PORT))
 
         if self.noninteractive:
@@ -607,7 +649,7 @@ class App(Cmd):
         else:
             proceed_option = self.PROCEED_YES
             while proceed_option == self.PROCEED_YES:
-                proceed_option = self.ask_proceed_quit('Do you want to try again? (Y / n = continue without LetsEncrypt / q=quit): ')
+                proceed_option = self.ask_proceed_quit('Do you want to try the port again? (Y / n = next step / q = quit): ')
                 if proceed_option == self.PROCEED_NO:
                     return True
                 elif proceed_option == self.PROCEED_QUIT:
@@ -616,6 +658,7 @@ class App(Cmd):
                 # Test again
                 ok = letsencrypt.test_port_open(ip=ip)
                 if ok:
+                    self.last_le_port_open = True
                     return True
             pass
         pass

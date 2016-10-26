@@ -10,6 +10,7 @@ import errors
 import subprocess
 import shutil
 import re
+import json
 
 
 __author__ = 'dusanklinec'
@@ -154,6 +155,92 @@ class LetsEncryptToJks(object):
                     os.remove(p12_name)
 
 
+class LetsEncryptManualDns(object):
+    """
+    Manual DNS LetsEncrypt verifier
+    """
+
+    def __init__(self, email=None, domains=None, print_output=False, on_domain_challenge=None,
+                 cmd=None, cmd_exec=None, log_obj=None, debug=False, *args, **kwargs):
+
+        self.email = email
+        self.domains = domains
+        self.print_output = print_output
+        self.debug = debug
+
+        self.cmd = cmd
+        self.cmd_exec = cmd_exec
+        self.log_obj = log_obj
+
+        self.p = None
+        self.on_domain_challenge = on_domain_challenge
+        self.manual_dns_last_validation = None
+        self.manual_dns_last_domain = None
+        self.manual_dns_last_token = None
+        self.manual_dns_report = None
+
+    def answer_manual_dns_out(self, out, feeder, p, *args, **kwargs):
+        return self.answer_manual_dns(out, feeder, p, err=False)
+
+    def answer_manual_dns_err(self, out, feeder, p, *args, **kwargs):
+        return self.answer_manual_dns(out, feeder, p, err=True)
+
+    def answer_manual_dns(self, out, feeder, p, err=False, *args, **kwargs):
+        self.p = p
+
+        if self.print_output:
+            sys.stderr.write('.')
+            sys.stderr.flush()
+
+        if err:
+            return
+
+        out = out.strip()
+        if len(out) == 0:
+            return
+
+        def done():
+            feeder.feed('\n')
+
+        try:
+            json_obj = json.loads(out)
+        except:
+            return
+
+        if 'cmd' not in json_obj:
+            raise ValueError('Could not process json command: %s' % out)
+        cmd = json_obj['cmd']
+        if cmd == 'validate':
+            self.manual_dns_last_validation = json_obj
+            self.manual_dns_last_token = json_obj['validation']
+            self.manual_dns_last_domain = json_obj['domain']
+            self.on_domain_challenge(domain=self.manual_dns_last_domain, token=self.manual_dns_last_token,
+                                     mdns=self, p=p, done=done, abort=self.abort)
+
+        elif cmd == 'report':
+            pass
+
+    def abort(self):
+        if self.p is not None:
+            self.p.commands[0].terminate()
+
+    def print_error(self, msg):
+        if self.print_output:
+            sys.stderr.write(msg)
+
+    def start(self):
+        """
+        Trigger the new verification
+        """
+        ret, out, err = util.cli_cmd_sync(self.cmd_exec, log_obj=self.log_obj, write_dots=self.print_output,
+                                          on_err=self.answer_manual_dns_err, on_out=self.answer_manual_dns_out)
+        if ret != 0:
+            self.print_error('\nCertbot command failed: %s\n' % self.cmd_exec)
+            self.print_error('For more information please refer to the log file: %s' % self.log_obj)
+
+        return ret, out, err
+
+
 class LetsEncrypt(object):
     """
     LetsEncrypt integration
@@ -194,6 +281,25 @@ class LetsEncrypt(object):
             self.print_error('For more information please refer to the log file: %s' % log_obj)
 
         return ret, out, err
+
+    def manual_dns(self, email=None, domains=None, expand=True, on_domain_challenge=None):
+        if email is not None:
+            self.email = email
+        if domains is not None:
+            self.domains = domains
+
+        email = self.email
+        if (self.email is None or len(self.email) == 0) \
+                and self.FALLBACK_EMAIL is not None and len(self.FALLBACK_EMAIL) > 0:
+            email = self.FALLBACK_EMAIL
+
+        cmd = self.get_manual_dns(self.domains, email=email, expand=expand)
+        cmd_exec = 'sudo -E -H %s %s' % (self.CERTBOT_PATH, cmd)
+        log_obj = self.CERTBOT_LOG
+
+        mdns = LetsEncryptManualDns(email=email, domains=self.domains, on_domain_challenge=on_domain_challenge,
+                                    cmd=cmd, cmd_exec=cmd_exec, log_obj=log_obj)
+        return mdns
 
     def renew(self):
         cmd = self.get_renew_cmd()
@@ -301,7 +407,32 @@ class LetsEncrypt(object):
 
         cmd_expand_part = '' if not expand else ' --expand '
 
-        cmd = 'certonly --standalone --text -n --agree-tos %s %s %s' % (cmd_email_part, cmd_domains_part, cmd_expand_part)
+        cmd = 'certonly --standalone --text -n --agree-tos %s %s %s' % (cmd_email_part, cmd_expand_part, cmd_domains_part)
+        return cmd
+
+    @staticmethod
+    def get_manual_dns(domain, email=None, expand=True):
+        """
+        Non-interactive mode is not yet supported with the manual authenticator.
+
+        :param domain:
+        :param email:
+        :param expand:
+        :return:
+        """
+        cmd_email_part = LetsEncrypt.get_email_cmd(email)
+
+        domains = domain if isinstance(domain, types.ListType) else [domain]
+        domains = ['"%s"' % x.strip() for x in domains]
+        cmd_domains_part = ' -d ' + (' -d '.join(domains))
+
+        cmd_expand_part = '' if not expand else ' --expand --renew-by-default '
+
+        cmd = 'certonly --text --agree-tos ' \
+              '-a certbot-external-auth:out ' \
+              '--certbot-external-auth:out-public-ip-logging-ok ' \
+              '--preferred-challenges dns %s %s %s' % \
+              (cmd_email_part, cmd_expand_part, cmd_domains_part)
         return cmd
 
     @staticmethod
