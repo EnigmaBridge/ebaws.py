@@ -120,6 +120,22 @@ class Config(object):
 
         return candidate_list[0], candidate_list
 
+    def get_le_method(self, le_method=None):
+        """
+        Decides which LetsEncrypt domain verification method to use w.r.t. current settings
+        :param le_method:
+        :return:
+        """
+        if le_method is not None:
+            return le_method
+        if self.is_private_network and self.le_preferred_verification == LE_VERIFY_TLSSNI:
+            logger.warning('Conflicting LE settings - private network && TLS SNI')
+        if self.is_private_network:
+            return LE_VERIFY_DNS
+        if self.le_preferred_verification is not None:
+            return self.le_preferred_verification
+        return LE_VERIFY_DEFAULT
+
     # email
     @property
     def email(self):
@@ -254,6 +270,15 @@ class Config(object):
     @is_private_network.setter
     def is_private_network(self, val):
         self.set_config('is_private_network', val)
+
+    # Preferred LetsEncrypt verification ?
+    @property
+    def le_preferred_verification(self):
+        return self.get_config('le_preferred_verification')
+
+    @le_preferred_verification.setter
+    def le_preferred_verification(self, val):
+        self.set_config('le_preferred_verification', val)
 
     # process endpoint
     @property
