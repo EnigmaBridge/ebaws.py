@@ -327,6 +327,8 @@ class App(Cmd):
 
             ejbca.set_config(new_config)
             ejbca.set_domains(new_config.domains)
+            ejbca.reg_svc = reg_svc
+
             ejbca.configure()
 
             if ejbca.ejbca_install_result != 0:
