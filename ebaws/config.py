@@ -120,7 +120,7 @@ class Config(object):
 
         return candidate_list[0], candidate_list
 
-    def get_le_method(self, le_method=None):
+    def get_le_method(self, le_method=None, default=None):
         """
         Decides which LetsEncrypt domain verification method to use w.r.t. current settings
         :param le_method:
@@ -134,6 +134,8 @@ class Config(object):
             return LE_VERIFY_DNS
         if self.le_preferred_verification is not None:
             return self.le_preferred_verification
+        if default is not None:
+            return default
         return LE_VERIFY_DEFAULT
 
     # email

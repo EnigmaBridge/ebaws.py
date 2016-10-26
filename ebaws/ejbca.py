@@ -11,6 +11,7 @@ import shutil
 import re
 import letsencrypt
 import logging
+from consts import LE_VERIFY_DNS, LE_VERIFY_TLSSNI, LE_VERIFY_DEFAULT
 
 
 __author__ = 'dusanklinec'
@@ -75,7 +76,8 @@ class Ejbca(object):
         #'superadmin.password': 'ejbca',
     }
 
-    def __init__(self, install_props=None, web_props=None, print_output=False, eb_config=None, jks_pass=None, config=None, *args, **kwargs):
+    def __init__(self, install_props=None, web_props=None, print_output=False, eb_config=None, jks_pass=None,
+                 config=None, staging=False, *args, **kwargs):
         self.install_props = install_props if install_props is not None else {}
         self.web_props = web_props if web_props is not None else {}
 
@@ -87,6 +89,7 @@ class Ejbca(object):
         self.hostname = None
         self.domains = None
 
+        self.staging = staging
         self.lets_encrypt = None
         self.lets_encrypt_jks = None
 
@@ -631,7 +634,15 @@ class Ejbca(object):
         # Call done callback
         done()
 
-    def le_enroll(self):
+    def get_le_method(self, le_method=None):
+        """
+        Decides which method to use.
+        :param le_method:
+        :return:
+        """
+        return self.config.get_le_method(le_method=le_method)
+
+    def le_enroll(self, le_method=None):
         """
         Enrolls to LetsEncrypt with specified domains
         :return:
@@ -648,10 +659,13 @@ class Ejbca(object):
         if not self.check_hostname_domains_consistency():
             raise ValueError('Hostname not in domains, should not happen')
 
-        self.lets_encrypt = letsencrypt.LetsEncrypt(email=self.config.email, domains=self.domains, print_output=self.print_output)
+        self.lets_encrypt = letsencrypt.LetsEncrypt(email=self.config.email, domains=self.domains,
+                                                    print_output=self.print_output, staging=self.staging)
+
+        le_method = self.get_le_method(le_method=le_method)
 
         ret, out, err = -1, None, None
-        if self.config.is_private_network:
+        if le_method == LE_VERIFY_DNS:
             mdns = self.lets_encrypt.manual_dns(expand=True, on_domain_challenge=self.le_dns)
             ret, out, err = mdns.start()
         else:
@@ -682,12 +696,14 @@ class Ejbca(object):
         self.config.ejbca_hostname = self.hostname
         return 0
 
-    def le_renew(self):
+    def le_renew(self, le_method=None):
         """
         Renews LetsEncrypt certificate
         :return: 0 if certificate was renewed and JKS recreated, 1 if OK but no renewal was needed, error otherwise
         """
-        self.lets_encrypt = letsencrypt.LetsEncrypt(email=self.config.email, domains=self.domains, print_output=self.print_output)
+        self.lets_encrypt = letsencrypt.LetsEncrypt(email=self.config.email, domains=self.domains,
+                                                    print_output=self.print_output, staging=self.staging)
+
         if self.lets_encrypt.is_certificate_ready(domain=self.hostname) != 0:
             return 2
 
@@ -695,8 +711,10 @@ class Ejbca(object):
         cert_time_before = util.get_file_mtime(cert_file)
 
         # Call letsencrypt renewal
+        le_method = self.get_le_method(le_method=le_method)
+
         ret, out, err = -1, None, None
-        if self.config.is_private_network:
+        if le_method == LE_VERIFY_DNS:
             mdns = self.lets_encrypt.manual_dns(expand=True, on_domain_challenge=self.le_dns)
             ret, out, err = mdns.start()
         else:

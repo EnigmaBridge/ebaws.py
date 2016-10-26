@@ -175,7 +175,7 @@ class App(Cmd):
                                   'browser. '
                                   'We need to communicate with a public certification authority LetsEncrypt. LetsEncrypt '
                                   'will verify a certificate request is genuine either by connecting to port 443 on this '
-                                  'instance or by DNS challenge on the domain if 443 is blocked.'))
+                                  'instance or by a DNS challenge on the domain if 443 is blocked.'))
         print('')
         print(self.wrap_term(single_string=True, max_width=80,
                              text='More details and our privacy policy can be found at: https://enigmabridge.com/amazonpki'))
@@ -193,7 +193,7 @@ class App(Cmd):
         try:
             reg_svc = Registration(email=email, eb_config=eb_cfg)
             soft_config = SoftHsmV1Config()
-            ejbca = Ejbca(print_output=True)
+            ejbca = Ejbca(print_output=True, staging=self.args.le_staging)
             syscfg = SysConfig(print_output=True)
 
             # Check if we have EJBCA resources on the drive
@@ -208,17 +208,41 @@ class App(Cmd):
             if ret != 0:
                 return self.return_code(1)
 
+            # Preferred LE method? If set...
+            args_le_preferred_method = self.get_args_le_verification()
+            args_is_vpc = self.get_args_vpc()
+            self.last_is_vpc = False
 
-            # Lets encrypt reachability test
-            port_ok = self.le_check_port(critical=False)
-            if not port_ok:
+            # Lets encrypt reachability test, if preferred method is DNS - do only one attempt.
+            # We test this to detect VPC also. If 443 is reachable, we are not in VPC
+            port_ok = self.le_check_port(critical=False, one_attempt=args_le_preferred_method == LE_VERIFY_DNS)
+            if not port_ok and args_le_preferred_method != LE_VERIFY_DNS:
                 return self.return_code(10)
 
             # Is it VPC?
-            if not self.last_le_port_open:
-                print('\n - You are probably behind NAT, in a virtual private cloud (VPC) or firewalled by other means')
-                print(' - LetsEncrypt can work via DNS validation if port 443 is not available, I will use this way now')
+            # If user explicitly selects VPC then this is not printed
+            # Otherwise we have to ask, because it can be just the case 443 is firewalled.
+            if args_is_vpc is None and not self.last_le_port_open:
+                print('-'*self.get_term_width())
+                print('\n - TCP port 443 was not reachable on the public IP %s' % reg_svc.info_loader.ami_public_ip)
+                print(' - You are probably behind NAT, in a virtual private cloud (VPC) or firewalled by other means')
+                print(' - LetsEncrypt validation will now use DNS method\n')
+                args_le_preferred_method = LE_VERIFY_DNS
+
+                self.last_is_vpc = self.ask_proceed('Are you in VPC / behind firewall / NAT ?\n'
+                                                    'If yes, we will configure your private IP %s '
+                                                    'in the DNS (y=VPC / n=public): ' % reg_svc.info_loader.ami_local_ip)
+                print('-'*self.get_term_width())
+
+            if args_is_vpc == 1:
                 self.last_is_vpc = True
+            elif args_is_vpc == 0:
+                self.last_is_vpc = False
+
+            # Test conflict between VPC and LE verification
+            if self.last_is_vpc and args_le_preferred_method != LE_VERIFY_DNS:
+                print('\nError: LetsEncrypt verification method has to be DNS if 443 is unreachable, overriding')
+                args_le_preferred_method = LE_VERIFY_DNS
 
             # Creates a new RSA key-pair identity
             # Identity relates to bound DNS names and username.
@@ -231,6 +255,7 @@ class App(Cmd):
             # Custom hostname for EJBCA - not yet supported
             new_config.ejbca_hostname_custom = False
             new_config.is_private_network = self.last_is_vpc
+            new_config.le_preferred_verification = args_le_preferred_method
 
             # Assign a new dynamic domain for the host
             domain_is_ok = False
@@ -389,12 +414,14 @@ class App(Cmd):
                 print('  https://%s:%d/ejbca/adminweb/' % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
 
             # Test if EJBCA is reachable on outer interface
-            ejbca_open = ejbca.test_port_open(host=reg_svc.info_loader.ami_public_ip)
-            if not ejbca_open:
-                self.cli_sleep(5)
-                print('\nWarning! The PKI port %d is not reachable on the public IP address %s' % (ejbca.PORT, reg_svc.info_loader.ami_public_ip))
-                print('If you cannot connect to the PKI kye management interface, consider reconfiguring the AWS Security Groups')
-                print('Please get in touch with our support via https://enigmabridge/freshdesk.com')
+            # The test is performed only if not in VPC. Otherwise it makes no sense to check public IP for 8443.
+            if not self.last_is_vpc:
+                ejbca_open = ejbca.test_port_open(host=reg_svc.info_loader.ami_public_ip)
+                if not ejbca_open:
+                    self.cli_sleep(5)
+                    print('\nWarning! The PKI port %d is not reachable on the public IP address %s' % (ejbca.PORT, reg_svc.info_loader.ami_public_ip))
+                    print('If you cannot connect to the PKI kye management interface, consider reconfiguring the AWS Security Groups')
+                    print('Please get in touch with our support via https://enigmabridge/freshdesk.com')
 
             self.cli_sleep(5)
             return self.return_code(0)
@@ -423,6 +450,27 @@ class App(Cmd):
             print(' Cannot continue. Did init complete successfully?')
             return self.return_code(1)
 
+        # Argument override / reconfiguration
+        args_le_preferred_method = self.get_args_le_verification()
+        args_is_vpc = self.get_args_vpc()
+
+        if args_le_preferred_method is not None and args_le_preferred_method != config.le_preferred_verification:
+            print('\nOverriding LetsEncrypt preferred method, settings: %s, new: %s' % (config.le_preferred_verification, args_le_preferred_method))
+            config.le_preferred_verification = args_le_preferred_method
+
+        if args_is_vpc is not None and args_is_vpc != config.is_private_network:
+            print('\nOverriding is private network settings, settings.private: %s, new.private: %s' % (config.is_private_network, args_is_vpc))
+            config.is_private_network = args_is_vpc == 1
+
+        if config.is_private_network \
+                and args_le_preferred_method is not None \
+                and args_le_preferred_method != LE_VERIFY_DNS:
+            print('\nError, conflicting settings: VPC=1, LE method != DNS')
+            return self.return_code(1)
+
+        # Update configuration
+        Core.write_configuration(config)
+
         # If there is no hostname, enrollment probably failed.
         eb_cfg = Core.get_default_eb_config()
 
@@ -434,13 +482,13 @@ class App(Cmd):
                 return self.return_code(3)
 
         # EJBCA
-        ejbca = Ejbca(print_output=True, jks_pass=config.ejbca_jks_password, config=config)
+        ejbca = Ejbca(print_output=True, jks_pass=config.ejbca_jks_password, config=config, staging=self.args.le_staging)
         ejbca.set_domains(config.ejbca_domains)
         ejbca.reg_svc = reg_svc
 
         ejbca_host = ejbca.hostname
 
-        le_test = LetsEncrypt()
+        le_test = LetsEncrypt(staging=self.args.le_staging)
         enroll_new_cert = ejbca_host is None or len(ejbca_host) == 0 or ejbca_host == 'localhost'
         if enroll_new_cert:
             ejbca.set_domains(domains)
@@ -450,12 +498,19 @@ class App(Cmd):
             enroll_new_cert = le_test.is_certificate_ready(domain=ejbca_host) != 0
 
         # Test LetsEncrypt port - only if in non-private network
-        if not config.is_private_network:
+        require_443_test = True
+        if config.is_private_network:
+            require_443_test = False
+            print('\nInstallation done on private network, skipping TCP port 443 check')
+
+        if config.get_le_method() == LE_VERIFY_DNS:
+            require_443_test = False
+            print('\nPreferred LetsEncrypt verification method is DNS, skipping TCP port 443 check')
+
+        if require_443_test:
             port_ok = self.le_check_port(critical=True)
             if not port_ok:
                 return self.return_code(10)
-        else:
-            print('Installation done on private network, skipping TCP port 443 check\n')
 
         ret = 0
         if enroll_new_cert:
@@ -586,7 +641,7 @@ class App(Cmd):
         if not should_continue:
             return self.return_code(1)
 
-        ejbca = Ejbca(print_output=True)
+        ejbca = Ejbca(print_output=True, staging=self.args.le_staging)
 
         print(' - Undeploying PKI System (EJBCA) from the application server')
         ejbca.undeploy()
@@ -609,7 +664,7 @@ class App(Cmd):
 
         self.last_le_port_open = False
         if letsencrypt is None:
-            letsencrypt = LetsEncrypt()
+            letsencrypt = LetsEncrypt(staging=self.args.le_staging)
 
         print('\nChecking if port %d is open for LetsEncrypt, ip: %s' % (letsencrypt.PORT, ip))
         ok = letsencrypt.test_port_open(ip=ip)
@@ -664,7 +719,7 @@ class App(Cmd):
         return ret
 
     def le_renew(self, ejbca):
-        le_test = LetsEncrypt()
+        le_test = LetsEncrypt(staging=self.args.le_staging)
 
         renew_needed = self.args.force or le_test.test_certificate_for_renew(domain=ejbca.hostname, renewal_before=60*60*24*20) != 0
         if not renew_needed:
@@ -806,6 +861,27 @@ class App(Cmd):
             confirmation = self.ask_proceed(question)
         return var
 
+    def is_args_le_verification_set(self):
+        """True if LetsEncrypt domain verification is set in command line - potential override"""
+        return self.args.le_verif is not None
+
+    def get_args_le_verification(self, default=None):
+        meth = self.args.le_verif
+        if meth is None:
+            return default
+        if meth == LE_VERIFY_DNS:
+            return LE_VERIFY_DNS
+        elif meth == LE_VERIFY_TLSSNI:
+            return LE_VERIFY_TLSSNI
+        else:
+            raise ValueError('Unrecognized LetsEncrypt verification method %s' % meth)
+
+    def get_args_vpc(self, default=None):
+        is_vpc = self.args.is_vpc
+        if is_vpc is None:
+            return default
+        return is_vpc
+
     def check_root(self):
         """Checks if the script was started with root - we need that for file ops :/"""
         uid = os.getuid()
@@ -883,6 +959,15 @@ class App(Cmd):
                             help='forces some action (e.g., certificate renewal)')
         parser.add_argument('--email', dest='email', default=None,
                             help='email address to use instead of prompting for one')
+
+        parser.add_argument('--vpc', dest='is_vpc', default=None, type=int,
+                            help='Sets whether the installation is in Virtual Private Cloud (VPC, public IP is not '
+                                 'accessible from the outside - NAT/Firewall). 1 for VPC, 0 for public IP')
+
+        parser.add_argument('--le-verification', dest='le_verif', default=None,
+                            help='Preferred LetsEncrypt domain verification method (%s, %s)' % (LE_VERIFY_TLSSNI, LE_VERIFY_DNS))
+        parser.add_argument('--le-staging', dest='le_staging', action='store_const', const=True, default=False,
+                            help='Uses staging CA without rate limiting')
 
         parser.add_argument('--yes', dest='yes', action='store_const', const=True,
                             help='answers yes to the questions in the non-interactive mode, mainly for init')
