@@ -1,5 +1,6 @@
 import json
 import functools
+import collections
 from consts import *
 from errors import *
 from ebclient.eb_configuration import Endpoint
@@ -31,7 +32,7 @@ class Config(object):
 
     @classmethod
     def from_json(cls, json_string):
-        return cls(json_db=json.loads(json_string))
+        return cls(json_db=json.loads(json_string, object_pairs_hook=collections.OrderedDict))
 
     @classmethod
     def from_file(cls, file_name):
@@ -47,9 +48,9 @@ class Config(object):
 
     def ensure_config(self):
         if self.json is None:
-            self.json = {}
+            self.json = collections.OrderedDict()
         if 'config' not in self.json:
-            self.json['config'] = {}
+            self.json['config'] = collections.OrderedDict()
 
     def has_nonempty_config(self):
         return self.json is not None and 'config' in self.json and len(self.json['config']) > 0
