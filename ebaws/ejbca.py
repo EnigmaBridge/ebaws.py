@@ -813,7 +813,8 @@ class Ejbca(object):
         Tests if port is open to the public
         :return:
         """
-        return util.test_port_open(host=host, port=self.PORT, timeout=timeout, attempts=attempts)
+        return util.test_port_open(host=host, port=self.PORT, timeout=timeout, attempts=attempts,
+                                   test_upper_read_write=False)
 
     def test_environment(self):
         """
