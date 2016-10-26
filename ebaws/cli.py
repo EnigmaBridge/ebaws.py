@@ -204,25 +204,10 @@ class App(Cmd):
             # Determine if we have enough RAM for the work.
             # If not, a new swap file is created so the system has at least 2GB total memory space
             # for compilation & deployment.
-            if not syscfg.is_enough_ram():
-                total_mem = syscfg.get_total_usable_mem()
-                print('\nTotal memory in the system is low: %d MB, installation requires at least 2GB'
-                      % int(math.ceil(total_mem/1024/1024)))
+            ret = self.install_check_memory(syscfg=syscfg)
+            if ret != 0:
+                return self.return_code(1)
 
-                print('New swap file will be installed in /var')
-                print('It will take approximately 2 minutes...')
-                code, swap_name, swap_size = syscfg.create_swap()
-                if code == 0:
-                    print('\nNew swap file was created %s %d MB and activated' % (swap_name,int(math.ceil(total_mem/1024/1024))))
-                else:
-                    print('\nSwap file could not be created. Please, inspect the problem and try again')
-                    return self.return_code(1)
-
-                # Recheck
-                if not syscfg.is_enough_ram():
-                    print('Error: still not enough memory. Please, resolve the issue and try again')
-                    return self.return_code(1)
-                print('')
 
             # Lets encrypt reachability test
             port_ok = self.le_check_port(critical=False)
@@ -698,6 +683,35 @@ class App(Cmd):
             print('\nFailed to renew LetsEncrypt certificate, code=%s.' % ret)
             print('You can try it again later with command renew\n')
         return ret
+
+    def install_check_memory(self, syscfg):
+        """
+        Checks if the system has enough virtual memory to sucessfully finish the installation.
+        If not, it adds a new swapfile.
+
+        :param syscfg:
+        :return:
+        """
+        if not syscfg.is_enough_ram():
+            total_mem = syscfg.get_total_usable_mem()
+            print('\nTotal memory in the system is low: %d MB, installation requires at least 2GB'
+                  % int(math.ceil(total_mem/1024/1024)))
+
+            print('New swap file will be installed in /var')
+            print('It will take approximately 2 minutes...')
+            code, swap_name, swap_size = syscfg.create_swap()
+            if code == 0:
+                print('\nNew swap file was created %s %d MB and activated' % (swap_name,int(math.ceil(total_mem/1024/1024))))
+            else:
+                print('\nSwap file could not be created. Please, inspect the problem and try again')
+                return self.return_code(1)
+
+            # Recheck
+            if not syscfg.is_enough_ram():
+                print('Error: still not enough memory. Please, resolve the issue and try again')
+                return self.return_code(1)
+            print('')
+        return 0
 
     def return_code(self, code=0):
         self.last_result = code
