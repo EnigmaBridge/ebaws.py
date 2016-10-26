@@ -286,6 +286,7 @@ class Registration(object):
     def refresh_domain(self):
         """
         Attempts to refresh previously assigned domain after AWS restart
+        Modifies self.config with returned domains
         :return:
         """
         api_data_req_body = {
@@ -352,6 +353,10 @@ class Registration(object):
         return self.config
 
     def get_cert_pem_json(self):
+        """
+        Extracts simple base64 encoded certificate (no newlines, ASCII armor) from the self.crt_pem in PEM format.
+        :return:
+        """
         result = ''
         for line in self.crt_pem.split('\n'):
             line = line.strip()
@@ -361,9 +366,20 @@ class Registration(object):
         return result
 
     def anonymize_instance_id(self, instance_id):
+        """
+        Anonymizes instance ID by HMACing it with the client secret
+        :param instance_id:
+        :return:
+        """
         return self.anonymize_param('instance-id', instance_id)
 
     def anonymize_param(self, param_name, param_value):
+        """
+        Anonymizes a parameter by HMACing it with the client secret
+        :param param_name:
+        :param param_value:
+        :return:
+        """
         m = util.hmac_obj(self.id_nonce, 'paramhash;')
         m.update(param_name)
         m.update(';')
