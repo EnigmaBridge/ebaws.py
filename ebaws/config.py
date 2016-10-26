@@ -1,12 +1,15 @@
 import json
 import functools
 import collections
+import logging
 from consts import *
 from errors import *
 from ebclient.eb_configuration import Endpoint
 from ebclient.registration import *
 
+
 __author__ = 'dusanklinec'
+logger = logging.getLogger(__name__)
 
 
 class EBEndpoint(Endpoint):
