@@ -11,6 +11,7 @@ import subprocess
 import shutil
 import re
 import json
+import certbot_external_auth as cba
 
 
 __author__ = 'dusanklinec'
@@ -207,13 +208,13 @@ class LetsEncryptManualDns(object):
         except:
             return
 
-        if 'cmd' not in json_obj:
+        if cba.FIELD_CMD not in json_obj:
             raise ValueError('Could not process json command: %s' % out)
-        cmd = json_obj['cmd']
-        if cmd == 'validate':
+        cmd = json_obj[cba.FIELD_CMD]
+        if cmd == cba.COMMAND_PERFORM:
             self.manual_dns_last_validation = json_obj
-            self.manual_dns_last_token = json_obj['validation']
-            self.manual_dns_last_domain = json_obj['domain']
+            self.manual_dns_last_token = json_obj[cba.FIELD_VALIDATION]
+            self.manual_dns_last_domain = json_obj[cba.FIELD_TXT_DOMAIN]
             self.on_domain_challenge(domain=self.manual_dns_last_domain, token=self.manual_dns_last_token,
                                      mdns=self, p=p, done=done, abort=self.abort)
 

@@ -3,7 +3,7 @@ import sys
 from setuptools import setup
 from setuptools import find_packages
 
-version = '0.0.18'
+version = '0.0.19'
 
 # Please update tox.ini when modifying dependency version requirements
 install_requires = [
@@ -22,7 +22,7 @@ install_requires = [
     'six',
     'future',
     'certbot',
-    'certbot-external-auth'
+    'certbot-external-auth>=0.0.5'
 ]
 
 # env markers in extras_require cause problems with older pip: #517
