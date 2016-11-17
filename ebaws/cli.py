@@ -49,7 +49,16 @@ class App(Cmd):
         self.last_result = 0
         self.last_le_port_open = False
         self.last_is_vpc = False
+
+        # Init state
+        self.config = None
+        self.eb_settings = None
         self.user_reg_type = None
+        self.email = None
+        self.reg_svc = None
+        self.soft_config = None
+        self.ejbca = None
+        self.syscfg = None
 
         self.noninteractive = False
         self.version = self.load_version()
@@ -130,19 +139,24 @@ class App(Cmd):
         print('Going to install PKI system and enrol it to the Enigma Bridge FIPS140-2 encryption service.\n')
 
         # EB Settings read. Optional.
-        eb_aws_settings, eb_aws_settings_path = Core.read_settings()
-        if eb_aws_settings is not None:
-            self.user_reg_type = eb_aws_settings.user_reg_type
+        self.eb_settings, eb_aws_settings_path = Core.read_settings()
+        if self.eb_settings is not None:
+            self.user_reg_type = self.eb_settings.user_reg_type
         if self.args.reg_type is not None:
             self.user_reg_type = self.args.reg_type
-        if eb_aws_settings is None:
-            eb_aws_settings = EBSettings()
+        if self.eb_settings is None:
+            self.eb_settings = EBSettings()
         if self.user_reg_type is not None:
-            eb_aws_settings.user_reg_type = self.user_reg_type
+            self.eb_settings.user_reg_type = self.user_reg_type
 
         # Configuration read, if any
-        config = Core.read_configuration()
-        if config is not None and config.has_nonempty_config():
+        self.config = Core.read_configuration()
+
+        # there may be 2-stage registration waiting to finish - continue with the registration
+        if self.config is not None and self.config.has_nonempty_config() and self.config.two_stage_registration_waiting:
+            pass
+
+        if self.config is not None and self.config.has_nonempty_config():
             print('\nWARNING! This is a destructive process!')
             print('WARNING! The previous installation will be overwritten.\n')
             should_continue = self.ask_proceed(support_non_interactive=True)
@@ -156,15 +170,15 @@ class App(Cmd):
                 return self.return_code(1)
 
             # Backup the old config
-            fname = Core.backup_configuration(config)
+            fname = Core.backup_configuration(self.config)
             print('Configuration has been backed up: %s\n' % fname)
 
         # Reinit, ask for email
-        email = self.ask_for_email()
-        if isinstance(email, types.IntType):
+        self.email = self.ask_for_email()
+        if isinstance(self.email, types.IntType):
             return self.return_code(1, True)
 
-        eb_cfg = Core.get_default_eb_config()
+        self.eb_cfg = Core.get_default_eb_config()
 
         # Ask user explicitly if he wants to continue with the registration process.
         # Terms & Conditions of the AMIs tells us to ask user whether we can connect to the servers.
@@ -175,20 +189,21 @@ class App(Cmd):
 
         print('-'*self.get_term_width())
         try:
-            reg_svc = Registration(email=email, eb_config=eb_cfg, eb_settings=eb_aws_settings)
-            soft_config = SoftHsmV1Config()
-            ejbca = Ejbca(print_output=True, staging=self.args.le_staging)
-            syscfg = SysConfig(print_output=True)
+            self.reg_svc = Registration(email=self.email, eb_config=self.eb_cfg, eb_settings=self.eb_settings)
+            self.soft_config = SoftHsmV1Config()
+            self.ejbca = Ejbca(print_output=True, staging=self.args.le_staging)
+            self.syscfg = SysConfig(print_output=True)
 
             # Check if we have EJBCA resources on the drive
-            if not ejbca.test_environment():
-                print('\nError: Environment is damaged, some assets are missing for the key management installation. Cannot continue.')
+            if not self.ejbca.test_environment():
+                print(self.t.red('\nError: Environment is damaged, some assets are missing for the key management '
+                                 'installation. Cannot continue.'))
                 return self.return_code(1)
 
             # Determine if we have enough RAM for the work.
             # If not, a new swap file is created so the system has at least 2GB total memory space
             # for compilation & deployment.
-            ret = self.install_check_memory(syscfg=syscfg)
+            ret = self.install_check_memory(syscfg=self.syscfg)
             if ret != 0:
                 return self.return_code(1)
 
@@ -200,18 +215,19 @@ class App(Cmd):
             # Lets encrypt reachability test, if preferred method is DNS - do only one attempt.
             # We test this to detect VPC also. If 443 is reachable, we are not in VPC
             res, args_le_preferred_method = self.init_le_vpc_check(args_le_preferred_method,
-                                                                   args_is_vpc, reg_svc=reg_svc)
+                                                                   args_is_vpc, reg_svc=self.reg_svc)
             if res != 0:
                 return self.return_code(res)
 
             # Creates a new RSA key-pair identity
             # Identity relates to bound DNS names and username.
             # Requests for DNS manipulation need to be signed with the private key.
-            reg_svc.new_identity(id_dir=CONFIG_DIR, backup_dir=CONFIG_DIR_OLD)
+            self.reg_svc.new_identity(id_dir=CONFIG_DIR, backup_dir=CONFIG_DIR_OLD)
 
             # New client registration (new username, password, apikey).
             # This step may require email validation to continue.
-            new_config = reg_svc.new_registration()
+            # TODO: split to 2 parts... we may want to continue previous registration or start a new one...
+            new_config = self.reg_svc.new_registration()
 
             # Custom hostname for EJBCA - not yet supported
             new_config.ejbca_hostname_custom = False
@@ -219,34 +235,34 @@ class App(Cmd):
             new_config.le_preferred_verification = args_le_preferred_method
 
             # Assign a new dynamic domain for the host
-            res, domain_is_ok = self.init_domains_check(reg_svc=reg_svc)
-            new_config = reg_svc.config
+            res, domain_is_ok = self.init_domains_check(reg_svc=self.reg_svc)
+            new_config = self.reg_svc.config
             if res != 0:
                 return self.return_code(res)
 
             # Install to the OS
-            syscfg.install_onboot_check()
-            syscfg.install_cron_renew()
+            self.syscfg.install_onboot_check()
+            self.syscfg.install_cron_renew()
 
             # Dump config & SoftHSM
             conf_file = Core.write_configuration(new_config)
             print('New configuration was written to: %s\n' % conf_file)
 
             # SoftHSMv1 reconfigure
-            soft_config_backup_location = soft_config.backup_current_config_file()
+            soft_config_backup_location = self.soft_config.backup_current_config_file()
             print('SoftHSMv1 configuration has been backed up to: %s' % soft_config_backup_location)
 
-            soft_config.configure(new_config)
-            soft_config_file = soft_config.write_config()
+            self.soft_config.configure(new_config)
+            soft_config_file = self.soft_config.write_config()
 
             print('New SoftHSMv1 configuration has been written to: %s\n' % soft_config_file)
 
             # Init the token
-            backup_dir = soft_config.backup_previous_token_dir()
+            backup_dir = self.soft_config.backup_previous_token_dir()
             if backup_dir is not None:
                 print('SoftHSMv1 previous token database moved to: %s' % backup_dir)
 
-            out, err = soft_config.init_token(user=ejbca.JBOSS_USER)
+            out, err = self.soft_config.init_token(user=self.ejbca.JBOSS_USER)
             print('SoftHSMv1 initialization: %s' % out)
 
             # EJBCA configuration
@@ -254,26 +270,29 @@ class App(Cmd):
             print('  This may take 15 minutes or less. Please, do not interrupt the installation')
             print('  and wait until the process completes.\n')
 
-            ejbca.set_config(new_config)
-            ejbca.set_domains(new_config.domains)
-            ejbca.reg_svc = reg_svc
+            self.ejbca.set_config(new_config)
+            self.ejbca.set_domains(new_config.domains)
+            self.ejbca.reg_svc = self.reg_svc
 
-            ejbca.configure()
+            self.ejbca.configure()
 
-            if ejbca.ejbca_install_result != 0:
+            if self.ejbca.ejbca_install_result != 0:
                 print('\nPKI installation error. Please try again.')
                 return self.return_code(1)
 
-            Core.write_configuration(ejbca.config)
+            Core.write_configuration(self.ejbca.config)
             print('\nPKI installed successfully.')
 
             # Generate new keys
             print('\nGoing to generate EnigmaBridge keys in the crypto token:')
-            ret, out, err = ejbca.pkcs11_generate_default_key_set(softhsm=soft_config)
+            ret, out, err = self.ejbca.pkcs11_generate_default_key_set(softhsm=self.soft_config)
             key_gen_cmds = [
-                    ejbca.pkcs11_get_generate_key_cmd(softhsm=soft_config, bit_size=2048, alias='signKey', slot_id=0),
-                    ejbca.pkcs11_get_generate_key_cmd(softhsm=soft_config, bit_size=2048, alias='defaultKey', slot_id=0),
-                    ejbca.pkcs11_get_generate_key_cmd(softhsm=soft_config, bit_size=1024, alias='testKey', slot_id=0)
+                    self.ejbca.pkcs11_get_generate_key_cmd(softhsm=self.soft_config,
+                                                           bit_size=2048, alias='signKey', slot_id=0),
+                    self.ejbca.pkcs11_get_generate_key_cmd(softhsm=self.soft_config,
+                                                           bit_size=2048, alias='defaultKey', slot_id=0),
+                    self.ejbca.pkcs11_get_generate_key_cmd(softhsm=self.soft_config,
+                                                           bit_size=1024, alias='testKey', slot_id=0)
                 ]
 
             if ret != 0:
@@ -281,7 +300,7 @@ class App(Cmd):
                 print('You can do it later manually by calling')
 
                 for tmpcmd in key_gen_cmds:
-                    print('  %s' % ejbca.pkcs11_get_command(tmpcmd))
+                    print('  %s' % self.ejbca.pkcs11_get_command(tmpcmd))
 
                 print('\nError from the command:')
                 print(''.join(out))
@@ -291,11 +310,11 @@ class App(Cmd):
                 print('\nEnigmaBridge tokens generated successfully')
                 print('You can use these newly generated keys for your CA or generate another ones with:')
                 for tmpcmd in key_gen_cmds:
-                    print('  %s' % ejbca.pkcs11_get_command(tmpcmd))
+                    print('  %s' % self.ejbca.pkcs11_get_command(tmpcmd))
 
             # Add SoftHSM crypto token to EJBCA
             print('\nAdding an EnigmaBridge crypto token to your PKI instance:')
-            ret, out, err = ejbca.ejbca_add_softhsm_token(softhsm=soft_config, name='EnigmaBridgeToken')
+            ret, out, err = self.ejbca.ejbca_add_softhsm_token(softhsm=self.soft_config, name='EnigmaBridgeToken')
             if ret != 0:
                 print('\nError in adding EnigmaBridge token to the PKI instance')
                 print('You can add it manually in the PKI (EJBCA) admin page later')
@@ -304,7 +323,7 @@ class App(Cmd):
                 print('\nEnigmaBridgeToken added to the PKI instance')
 
             # LetsEncrypt enrollment
-            le_certificate_installed = self.le_install(ejbca)
+            le_certificate_installed = self.le_install(self.ejbca)
 
             print('\n')
             print('-'*self.get_term_width())
@@ -320,7 +339,8 @@ class App(Cmd):
                 print('  For more info please check https://enigmabridge.com/support/aws13073')
                 print('  We will keep re-trying every 5 minutes.')
                 print('\nMeantime, you can access the system at:')
-                print('     https://%s:%d/ejbca/adminweb/' % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
+                print('     https://%s:%d/ejbca/adminweb/'
+                      % (self.reg_svc.info_loader.ami_public_hostname, self.ejbca.PORT))
                 print('WARNING: you will have to override web browser security alerts.')
 
             self.cli_sleep(3)
@@ -330,27 +350,29 @@ class App(Cmd):
             time.sleep(0.5)
 
             # Finalize, P12 file & final instructions
-            new_p12 = ejbca.copy_p12_file()
-            public_hostname = ejbca.hostname if domain_is_ok else reg_svc.info_loader.ami_public_hostname
+            new_p12 = self.ejbca.copy_p12_file()
+            public_hostname = self.ejbca.hostname if domain_is_ok else self.reg_svc.info_loader.ami_public_hostname
             print('\nDownload p12 file: %s' % new_p12)
             print('  scp -i <your_Amazon_PEM_key> ec2-user@%s:%s .' % (public_hostname, new_p12))
-            print('  Key import password is: %s' % ejbca.superadmin_pass)
+            print('  Key import password is: %s' % self.ejbca.superadmin_pass)
             print('\nThe following page can guide you through p12 import: https://enigmabridge.com/support/aws13076')
             print('Once you import the p12 file to your computer browser/keychain you can connect to the PKI admin interface:')
 
             if domain_is_ok:
                 for domain in new_config.domains:
-                    print('  https://%s:%d/ejbca/adminweb/' % (domain, ejbca.PORT))
+                    print('  https://%s:%d/ejbca/adminweb/' % (domain, self.ejbca.PORT))
             else:
-                print('  https://%s:%d/ejbca/adminweb/' % (reg_svc.info_loader.ami_public_hostname, ejbca.PORT))
+                print('  https://%s:%d/ejbca/adminweb/'
+                      % (self.reg_svc.info_loader.ami_public_hostname, self.ejbca.PORT))
 
             # Test if EJBCA is reachable on outer interface
             # The test is performed only if not in VPC. Otherwise it makes no sense to check public IP for 8443.
             if not self.last_is_vpc:
-                ejbca_open = ejbca.test_port_open(host=reg_svc.info_loader.ami_public_ip)
+                ejbca_open = self.ejbca.test_port_open(host=self.reg_svc.info_loader.ami_public_ip)
                 if not ejbca_open:
                     self.cli_sleep(5)
-                    print('\nWarning! The PKI port %d is not reachable on the public IP address %s' % (ejbca.PORT, reg_svc.info_loader.ami_public_ip))
+                    print('\nWarning! The PKI port %d is not reachable on the public IP address %s'
+                          % (self.ejbca.PORT, self.reg_svc.info_loader.ami_public_ip))
                     print('If you cannot connect to the PKI kye management interface, consider reconfiguring the AWS Security Groups')
                     print('Please get in touch with our support via https://enigmabridge/freshdesk.com')
 
