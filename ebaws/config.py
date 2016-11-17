@@ -301,6 +301,15 @@ class Config(object):
     def two_stage_registration_waiting(self, val):
         self.set_config('two_stage_registration_waiting', val)
 
+    # client-id from the registration process
+    @property
+    def client_id(self):
+        return self.get_config('client_id', default=None)
+
+    @client_id.setter
+    def client_id(self, val):
+        self.set_config('client_id', val)
+
 
 class EBSettings(object):
     """General EB settings"""
