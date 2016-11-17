@@ -110,6 +110,7 @@ class Registration(object):
         self.eb_config = eb_config
         self.config = config
         self.eb_settings = eb_settings
+        self.env = ENVIRONMENT_DEVELOPMENT
         self.key = None
         self.crt = None
         self.key_path = None
@@ -218,7 +219,7 @@ class Registration(object):
             'email': self.email
         }
 
-        regreq = RegistrationRequest(client_data=client_data_reg, env=ENVIRONMENT_DEVELOPMENT, config=self.eb_config)
+        regreq = RegistrationRequest(client_data=client_data_reg, env=self.env, config=self.eb_config)
         regresponse = regreq.call()
 
         if 'username' not in regresponse:
@@ -239,7 +240,7 @@ class Registration(object):
             "location": [0.34,10]
         }
 
-        apireq = ApiKeyRequest(client_data=client_api_req, endpoint=endpoint, env=ENVIRONMENT_DEVELOPMENT, config=self.eb_config)
+        apireq = ApiKeyRequest(client_data=client_api_req, endpoint=endpoint, env=self.env, config=self.eb_config)
         apiresponse = apireq.call()
 
         if 'apikey' not in apiresponse:
@@ -266,7 +267,7 @@ class Registration(object):
             'certificate': self.get_cert_pem_json()
         }
 
-        req = EnrolDomainRequest(api_data=api_data_reg, env=ENVIRONMENT_DEVELOPMENT, config=self.eb_config)
+        req = EnrolDomainRequest(api_data=api_data_reg, env=self.env, config=self.eb_config)
         try:
             resp = req.call()
         except Exception as e:
@@ -322,7 +323,7 @@ class Registration(object):
             'apikey': self.config.apikey
         }
 
-        req = GetDomainChallengeRequest(api_data=api_data_req_body, env=ENVIRONMENT_DEVELOPMENT, config=self.eb_config)
+        req = GetDomainChallengeRequest(api_data=api_data_req_body, env=self.env, config=self.eb_config)
         resp = req.call()
 
         if 'authentication' not in resp:
@@ -356,7 +357,7 @@ class Registration(object):
             },
         }
 
-        req_upd = UpdateDomainRequest(api_data=api_data_req, env=ENVIRONMENT_DEVELOPMENT, config=self.eb_config)
+        req_upd = UpdateDomainRequest(api_data=api_data_req, env=self.env, config=self.eb_config)
         req_upd.aux_data = signature_aux
 
         try:
