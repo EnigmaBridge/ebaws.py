@@ -292,6 +292,15 @@ class Config(object):
     def endpoint_enroll(self):
         return self.resolve_endpoint(SERVER_ENROLLMENT, PROTOCOL_HTTPS)
 
+    # 2-stage registration started previously, now waiting...
+    @property
+    def two_stage_registration_waiting(self):
+        return self.get_config('two_stage_registration_waiting', default=False)
+
+    @two_stage_registration_waiting.setter
+    def two_stage_registration_waiting(self, val):
+        self.set_config('two_stage_registration_waiting', val)
+
 
 class EBSettings(object):
     """General EB settings"""
