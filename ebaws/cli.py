@@ -24,7 +24,7 @@ import logging, coloredlogs
 
 
 logger = logging.getLogger(__name__)
-coloredlogs.install()
+coloredlogs.install(level=logging.ERROR)
 
 
 class App(Cmd):
