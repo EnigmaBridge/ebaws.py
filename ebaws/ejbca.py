@@ -677,6 +677,7 @@ class Ejbca(object):
         # LetsEncrypt certificate is OK. Create JKS.
         # Backup previous JKS, delete the old one
         jks_path = self.get_keystore_path()
+        util.make_or_verify_dir(self.DB_BACKUPS)
         util.delete_file_backup(jks_path, chmod=0o600, backup_dir=self.DB_BACKUPS)
 
         # Create new JKS
