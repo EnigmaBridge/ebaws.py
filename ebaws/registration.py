@@ -202,6 +202,9 @@ class Registration(object):
         if self.info_loader.ami_instance_id is None:
             raise EnvError('Could not extract AMI instance ID')
 
+        if self.config is None:
+            raise ValueError('Configuration is not set')
+
         # Step 1: create a new identity
         if self.eb_config is None:
             self.eb_config = Core.get_default_eb_config()
@@ -247,7 +250,6 @@ class Registration(object):
             raise InvalidResponse('ApiKey was not present in the getApiKey response')
 
         # Step 3: save new identity configuration
-        self.config = Config(eb_config=self.eb_config)
         self.config.email = self.email
         self.config.username = regresponse['username']
         self.config.password = regresponse['password']

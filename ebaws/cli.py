@@ -13,7 +13,7 @@ import textwrap
 from blessed import Terminal
 from consts import *
 from core import Core
-from config import EBSettings
+from config import Config, EBSettings
 from registration import Registration, InfoLoader
 from softhsm import SoftHsmV1Config
 from ejbca import Ejbca
@@ -181,6 +181,7 @@ class App(Cmd):
             return self.return_code(1, True)
 
         self.eb_cfg = Core.get_default_eb_config()
+        self.config = Config(eb_config=self.eb_cfg)
 
         # Ask user explicitly if he wants to continue with the registration process.
         # Terms & Conditions of the AMIs tells us to ask user whether we can connect to the servers.
@@ -195,7 +196,9 @@ class App(Cmd):
         # Main try-catch block for the overal init operation.
         # noinspection PyBroadException
         try:
-            self.reg_svc = Registration(email=self.email, eb_config=self.eb_cfg, eb_settings=self.eb_settings)
+            self.reg_svc = Registration(email=self.email, config=self.config,
+                                        eb_config=self.eb_cfg, eb_settings=self.eb_settings)
+
             self.soft_config = SoftHsmV1Config()
             self.ejbca = Ejbca(print_output=True, staging=self.args.le_staging)
             self.syscfg = SysConfig(print_output=True)
