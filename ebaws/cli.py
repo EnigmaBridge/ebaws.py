@@ -365,6 +365,10 @@ class App(Cmd):
         return self.return_code(1)
 
     def init_print_intro(self):
+        """
+        Prints introduction text before the installation.
+        :return:
+        """
         print('')
         print('-'*self.get_term_width())
         print('\nThe installation is about to start.')
@@ -406,6 +410,15 @@ class App(Cmd):
         print('')
 
     def init_le_vpc_check(self, args_le_preferred_method, args_is_vpc, reg_svc):
+        """
+        Checks if LE port is accessible - determines if the machine has publicly routable IP address with
+         allowed port. Otherwise VPC question is asked. LE then uses DNS verification method.
+
+        :param args_le_preferred_method:
+        :param args_is_vpc:
+        :param reg_svc:
+        :return:
+        """
         port_ok = self.le_check_port(critical=False, one_attempt=args_le_preferred_method == LE_VERIFY_DNS)
         if not port_ok and args_le_preferred_method != LE_VERIFY_DNS:
             return self.return_code(10), None
