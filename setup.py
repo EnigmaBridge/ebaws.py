@@ -19,6 +19,8 @@ install_requires = [
     'psutil',
     'pid>=2.0.1',
     'blessed>=1.14.1',
+    'coloredlogs',
+    'humanfriendly>=2.1',
     'six',
     'future',
     'certbot',
