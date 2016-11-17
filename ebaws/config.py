@@ -337,7 +337,7 @@ class EBSettings(object):
     # user_reg_type ?
     @property
     def user_reg_type(self):
-        return self.get_config('user_reg_type', default=False)
+        return self.get_config('user_reg_type', default=None)
 
     @user_reg_type.setter
     def user_reg_type(self, val):
