@@ -158,7 +158,7 @@ class App(Cmd):
 
         # there may be 2-stage registration waiting to finish - continue with the registration
         if config_exists and self.config.two_stage_registration_waiting:
-            print('\nThere is a previous unfinished registration in progress for email: %s' % self.config.email)
+            print('\nThere is a previous unfinished registration for email: %s' % self.config.email)
             should_continue = self.ask_proceed(question='Do you want to continue with this registration? (y/n): ',
                                                support_non_interactive=True)
             previous_registration_continue = should_continue
@@ -250,14 +250,19 @@ class App(Cmd):
 
             # User registration may be multi-step process.
             if previous_registration_continue:
-                print('We sent you an email to %s with the verification token.' % self.email)
+                print('Your validation challenge is in the ticket assigned to you in the '
+                      'system https://enigmabridge.freshdesk.com for account %s.' % self.email)
                 self.reg_svc.reg_token = self.ask_for_token()
 
             elif self.reg_svc.is_auth_needed():
                 self.reg_svc.init_auth()
                 print('-'*self.get_term_width())
-                print('We sent you an email to %s with the verification token.' % self.email)
-                print('After the email arrives, please enter the token.')
+                print('\nIn order to continue with user validation you need a challenge token.')
+                print('We created a new ticket for you in our ticketing system https://enigmabridge.freshdesk.com')
+                print('  1. Create an account in the ticket system for %s.' % self.email)
+                print('        You should have email invitation in the mailbox.')
+                print('  2. You will receive a new ticket notification. Open the ticket link.')
+                print('  3. Copy the challenge from the ticket below.')
                 self.reg_svc.reg_token = self.ask_for_token()
 
             # Creates a new RSA key-pair identity
