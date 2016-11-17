@@ -185,11 +185,14 @@ class App(Cmd):
         # Ask user explicitly if he wants to continue with the registration process.
         # Terms & Conditions of the AMIs tells us to ask user whether we can connect to the servers.
         self.init_print_intro()
-        should_continue = self.ask_proceed('Do you agree with the installation process as outlined above? (Y/n): ', support_non_interactive=True)
+        should_continue = self.ask_proceed('Do you agree with the installation process as outlined above? (Y/n): ',
+                                           support_non_interactive=True)
         if not should_continue:
             return self.return_code(1)
 
         print('-'*self.get_term_width())
+
+        # Main try-catch block for the overal init operation.
         # noinspection PyBroadException
         try:
             self.reg_svc = Registration(email=self.email, eb_config=self.eb_cfg, eb_settings=self.eb_settings)
@@ -338,7 +341,8 @@ class App(Cmd):
                     print('  \nThere was a problem in registering new domain names for you system')
                     print('  Please get in touch with support@enigmabridge.com and we will try to resolve the problem')
             else:
-                print('  \nTrusted HTTPS certificate was not installed, most likely reason is port 443 being closed by a firewall')
+                print('  \nTrusted HTTPS certificate was not installed, most likely reason is port '
+                      '443 being closed by a firewall')
                 print('  For more info please check https://enigmabridge.com/support/aws13073')
                 print('  We will keep re-trying every 5 minutes.')
                 print('\nMeantime, you can access the system at:')
@@ -349,7 +353,8 @@ class App(Cmd):
             self.cli_sleep(3)
             print('-'*self.get_term_width())
             print('')
-            print(self.t.underline('Please setup your computer for secure connections to your PKI key management system:'))
+            print(self.t.underline('Please setup your computer for secure connections to your PKI '
+                                   'key management system:'))
             time.sleep(0.5)
 
             # Finalize, P12 file & final instructions
@@ -359,7 +364,8 @@ class App(Cmd):
             print('  scp -i <your_Amazon_PEM_key> ec2-user@%s:%s .' % (public_hostname, new_p12))
             print('  Key import password is: %s' % self.ejbca.superadmin_pass)
             print('\nThe following page can guide you through p12 import: https://enigmabridge.com/support/aws13076')
-            print('Once you import the p12 file to your computer browser/keychain you can connect to the PKI admin interface:')
+            print('Once you import the p12 file to your computer browser/keychain you can connect to the PKI '
+                  'admin interface:')
 
             if domain_is_ok:
                 for domain in new_config.domains:
@@ -376,13 +382,14 @@ class App(Cmd):
                     self.cli_sleep(5)
                     print('\nWarning! The PKI port %d is not reachable on the public IP address %s'
                           % (self.ejbca.PORT, self.reg_svc.info_loader.ami_public_ip))
-                    print('If you cannot connect to the PKI kye management interface, consider reconfiguring the AWS Security Groups')
+                    print('If you cannot connect to the PKI kye management interface, consider reconfiguring the '
+                          'AWS Security Groups')
                     print('Please get in touch with our support via https://enigmabridge/freshdesk.com')
 
             self.cli_sleep(5)
             return self.return_code(0)
 
-        except Exception as ex:
+        except Exception:
             if self.args.debug:
                 traceback.print_exc()
             print('Exception in the registration process, cannot continue.')
@@ -408,29 +415,34 @@ class App(Cmd):
         print('')
         print(self.wrap_term(single_string=True, max_width=80,
                              text='We will send the data above with your e-mail address (if entered) '
-                                  'to our EnigmaBridge registration server during this initialization. We will use it to:'))
+                                  'to our EnigmaBridge registration server during this initialization. '
+                                  'We will use it to:'))
         print('  - generate a dynamic DNS name (e.g., cambridge1.pki.enigmabridge.com);')
         print('  - create a client account at the Enigma Bridge CloudHSM service.')
         print('')
         print(self.wrap_term(single_string=True, max_width=80,
                              text='The Enigma Bridge account allows you access to secure hardware, which is used to '
-                                  'generate new RSA keys and use them securely to sign certificates, CRLs, and OCSP responses.'))
+                                  'generate new RSA keys and use them securely to sign certificates, CRLs, '
+                                  'and OCSP responses.'))
         print('')
         print(self.wrap_term(single_string=True, max_width=80,
-                             text='The static DNS name allows you securely access the PKI web interface as it will have '
-                                  'a valid browser-trusted HTTPS certificate as soon as this initialization is completed. '
-                                  'No more manual over-ride of untrusted certificates and security exceptions in your '
-                                  'browser. '
-                                  'We need to communicate with a public certification authority LetsEncrypt. LetsEncrypt '
-                                  'will verify a certificate request is genuine either by connecting to port 443 on this '
-                                  'instance or by a DNS challenge on the domain if 443 is blocked.'))
+                             text='The static DNS name allows you securely access the PKI web interface as '
+                                  'it will have a valid browser-trusted HTTPS certificate as soon as this '
+                                  'initialization is completed. No more manual over-ride of untrusted '
+                                  'certificates and security exceptions in your browser. '
+                                  'We need to communicate with a public certification authority LetsEncrypt. '
+                                  'LetsEncrypt will verify a certificate request is genuine either by connecting '
+                                  'to port 443 on this instance or by a DNS challenge on the domain '
+                                  'if 443 is blocked.'))
         print('')
         print(self.wrap_term(single_string=True, max_width=80,
-                             text='More details and our privacy policy can be found at: https://enigmabridge.com/amazonpki'))
+                             text='More details and our privacy policy can be found at: '
+                                  'https://enigmabridge.com/amazonpki'))
         print('')
         print(self.wrap_term(single_string=True, max_width=80,
                              text='In order to continue with the installation we need your consent with the network '
-                                  'communication the instance will be doing during the installation as outlined in the description above'))
+                                  'communication the instance will be doing during the installation as outlined in '
+                                  'the description above'))
 
         print('')
 
