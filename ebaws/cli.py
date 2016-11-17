@@ -168,45 +168,7 @@ class App(Cmd):
 
         # Ask user explicitly if he wants to continue with the registration process.
         # Terms & Conditions of the AMIs tells us to ask user whether we can connect to the servers.
-        print('')
-        print('-'*self.get_term_width())
-        print('\nThe installation is about to start.')
-        print('During the installation we collect the following ec2 metadata for enrolment to Enigma Bridge CloudHSM: ')
-        print('  - ami-id')
-        print('  - instance-id (anonymized, HMAC)')
-        print('  - instance-type')
-        print('  - placement (AWS region)')
-        print('  - local-ipv4')
-        print('  - public-ipv4')
-        print('  - public-hostname')
-        print('')
-        print(self.wrap_term(single_string=True, max_width=80,
-                             text='We will send the data above with your e-mail address (if entered) '
-                                  'to our EnigmaBridge registration server during this initialization. We will use it to:'))
-        print('  - generate a dynamic DNS name (e.g., cambridge1.pki.enigmabridge.com);')
-        print('  - create a client account at the Enigma Bridge CloudHSM service.')
-        print('')
-        print(self.wrap_term(single_string=True, max_width=80,
-                             text='The Enigma Bridge account allows you access to secure hardware, which is used to '
-                                  'generate new RSA keys and use them securely to sign certificates, CRLs, and OCSP responses.'))
-        print('')
-        print(self.wrap_term(single_string=True, max_width=80,
-                             text='The static DNS name allows you securely access the PKI web interface as it will have '
-                                  'a valid browser-trusted HTTPS certificate as soon as this initialization is completed. '
-                                  'No more manual over-ride of untrusted certificates and security exceptions in your '
-                                  'browser. '
-                                  'We need to communicate with a public certification authority LetsEncrypt. LetsEncrypt '
-                                  'will verify a certificate request is genuine either by connecting to port 443 on this '
-                                  'instance or by a DNS challenge on the domain if 443 is blocked.'))
-        print('')
-        print(self.wrap_term(single_string=True, max_width=80,
-                             text='More details and our privacy policy can be found at: https://enigmabridge.com/amazonpki'))
-        print('')
-        print(self.wrap_term(single_string=True, max_width=80,
-                             text='In order to continue with the installation we need your consent with the network '
-                                  'communication the instance will be doing during the installation as outlined in the description above'))
-
-        print('')
+        self.init_print_intro()
         should_continue = self.ask_proceed('Do you agree with the installation process as outlined above? (Y/n): ', support_non_interactive=True)
         if not should_continue:
             return self.return_code(1)
@@ -457,6 +419,47 @@ class App(Cmd):
             print('Exception in the registration process, cannot continue.')
 
         return self.return_code(1)
+
+    def init_print_intro(self):
+        print('')
+        print('-'*self.get_term_width())
+        print('\nThe installation is about to start.')
+        print('During the installation we collect the following ec2 metadata for enrolment to Enigma Bridge CloudHSM: ')
+        print('  - ami-id')
+        print('  - instance-id (anonymized, HMAC)')
+        print('  - instance-type')
+        print('  - placement (AWS region)')
+        print('  - local-ipv4')
+        print('  - public-ipv4')
+        print('  - public-hostname')
+        print('')
+        print(self.wrap_term(single_string=True, max_width=80,
+                             text='We will send the data above with your e-mail address (if entered) '
+                                  'to our EnigmaBridge registration server during this initialization. We will use it to:'))
+        print('  - generate a dynamic DNS name (e.g., cambridge1.pki.enigmabridge.com);')
+        print('  - create a client account at the Enigma Bridge CloudHSM service.')
+        print('')
+        print(self.wrap_term(single_string=True, max_width=80,
+                             text='The Enigma Bridge account allows you access to secure hardware, which is used to '
+                                  'generate new RSA keys and use them securely to sign certificates, CRLs, and OCSP responses.'))
+        print('')
+        print(self.wrap_term(single_string=True, max_width=80,
+                             text='The static DNS name allows you securely access the PKI web interface as it will have '
+                                  'a valid browser-trusted HTTPS certificate as soon as this initialization is completed. '
+                                  'No more manual over-ride of untrusted certificates and security exceptions in your '
+                                  'browser. '
+                                  'We need to communicate with a public certification authority LetsEncrypt. LetsEncrypt '
+                                  'will verify a certificate request is genuine either by connecting to port 443 on this '
+                                  'instance or by a DNS challenge on the domain if 443 is blocked.'))
+        print('')
+        print(self.wrap_term(single_string=True, max_width=80,
+                             text='More details and our privacy policy can be found at: https://enigmabridge.com/amazonpki'))
+        print('')
+        print(self.wrap_term(single_string=True, max_width=80,
+                             text='In order to continue with the installation we need your consent with the network '
+                                  'communication the instance will be doing during the installation as outlined in the description above'))
+
+        print('')
 
     def do_renew(self, arg):
         """Renews LetsEncrypt certificates used for the JBoss"""
