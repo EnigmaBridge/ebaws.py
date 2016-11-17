@@ -1,25 +1,25 @@
 __author__ = 'dusanklinec'
-CONFIG_DIR='/etc/enigma'
-CONFIG_DIR_OLD='/etc/enigma.old'
-CONFIG_FILE='config.json'
-IDENTITY_KEY='key.pem'
-IDENTITY_CRT='crt.pem'
-IDENTITY_NONCE='nonce.data'
+CONFIG_DIR = '/etc/enigma'
+CONFIG_DIR_OLD = '/etc/enigma.old'
+CONFIG_FILE = 'config.json'
+IDENTITY_KEY = 'key.pem'
+IDENTITY_CRT = 'crt.pem'
+IDENTITY_NONCE = 'nonce.data'
 
-SERVER_PROCESS_DATA='process_data'
-SERVER_ENROLLMENT='enrollment'
-SERVER_REGISTRATION='registration'
+SERVER_PROCESS_DATA = 'process_data'
+SERVER_ENROLLMENT = 'enrollment'
+SERVER_REGISTRATION = 'registration'
 
-PROTOCOL_HTTPS='https'
-PROTOCOL_RAW='tcp'
+PROTOCOL_HTTPS = 'https'
+PROTOCOL_RAW = 'tcp'
 
 LE_VERIFY_DNS = 'dns'
 LE_VERIFY_TLSSNI = 'tlssni'
 LE_VERIFY_DEFAULT = LE_VERIFY_TLSSNI
 
-EC2META_FILES=['/opt/aws/bin/ec2-metadata']
+EC2META_FILES = ['/opt/aws/bin/ec2-metadata']
 
-ONBOOT_INIT_SCRIPT="""#!/bin/sh
+ONBOOT_INIT_SCRIPT = """#!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          ebaws-onboot
 # Required-Start:    $local_fs $network $named $time $syslog
