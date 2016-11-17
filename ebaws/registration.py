@@ -104,11 +104,12 @@ class Registration(object):
     """
     Takes care about registration process
     """
-    def __init__(self, email=None, eb_config=None, config=None, debug=False, *args, **kwargs):
+    def __init__(self, email=None, eb_config=None, config=None, debug=False, eb_settings=None, *args, **kwargs):
         self.email = email
         self.debug = debug
         self.eb_config = eb_config
         self.config = config
+        self.eb_settings = eb_settings
         self.key = None
         self.crt = None
         self.key_path = None

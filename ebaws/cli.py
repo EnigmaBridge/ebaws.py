@@ -13,6 +13,7 @@ import textwrap
 from blessed import Terminal
 from consts import *
 from core import Core
+from config import EBSettings
 from registration import Registration, InfoLoader
 from softhsm import SoftHsmV1Config
 from ejbca import Ejbca
@@ -134,6 +135,10 @@ class App(Cmd):
             self.user_reg_type = eb_aws_settings.user_reg_type
         if self.args.reg_type is not None:
             self.user_reg_type = self.args.reg_type
+        if eb_aws_settings is None:
+            eb_aws_settings = EBSettings()
+        if self.user_reg_type is not None:
+            eb_aws_settings.user_reg_type = self.user_reg_type
 
         # Configuration read, if any
         config = Core.read_configuration()
@@ -156,7 +161,7 @@ class App(Cmd):
 
         # Reinit, ask for email
         email = self.ask_for_email()
-        if email == 1:
+        if isinstance(email, types.IntType):
             return self.return_code(1, True)
 
         eb_cfg = Core.get_default_eb_config()
@@ -208,7 +213,7 @@ class App(Cmd):
 
         print('-'*self.get_term_width())
         try:
-            reg_svc = Registration(email=email, eb_config=eb_cfg)
+            reg_svc = Registration(email=email, eb_config=eb_cfg, eb_settings=eb_aws_settings)
             soft_config = SoftHsmV1Config()
             ejbca = Ejbca(print_output=True, staging=self.args.le_staging)
             syscfg = SysConfig(print_output=True)
@@ -267,6 +272,7 @@ class App(Cmd):
             reg_svc.new_identity(id_dir=CONFIG_DIR, backup_dir=CONFIG_DIR_OLD)
 
             # New client registration (new username, password, apikey).
+            # This step may require email validation to continue.
             new_config = reg_svc.new_registration()
 
             # Custom hostname for EJBCA - not yet supported
