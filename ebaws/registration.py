@@ -331,12 +331,15 @@ class Registration(object):
         client_data_reg = {
             'name': self.id_string,
             'authentication': 'type',
-            'clientid': self.config.client_id,
             'type': self.user_reg_type,
             'token': self.reg_token,
             'ami': self.ami_details,
             'email': self.get_email()
         }
+
+        clid = self.config.client_id
+        if clid is not None and len(clid) > 0:
+            client_data_reg['clientid'] = clid
 
         regreq = RegistrationRequest(client_data=client_data_reg, env=self.env, config=self.eb_config)
         regresponse = regreq.call()
