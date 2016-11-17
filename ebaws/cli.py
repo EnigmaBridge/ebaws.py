@@ -1052,12 +1052,12 @@ class App(Cmd):
                     print('Email address is required, cannot be empty')
                     continue
                 else:
-                    question = 'You have entered an empty email address, is it correct? (Y/n):'
+                    question = 'You have entered an empty email address, is it correct? (Y/n): '
             elif not util.safe_email(var):
                 print('Email you have entered is invalid, try again')
                 continue
             else:
-                question = 'Is this email correct? \'%s\' (Y/n/q):' % var
+                question = 'Is this email correct? \'%s\' (Y/n/q): ' % var
             confirmation = self.ask_proceed_quit(question)
             if confirmation == self.PROCEED_QUIT:
                 return self.return_code(1)
