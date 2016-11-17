@@ -115,7 +115,7 @@ fi
 if [ "$NO_SELF_UPGRADE" != 1 -a "$UPDATE_ALLOWED" == 1 ]; then
     echo "Checking for updates..."
     set +e
-    PIP_OUT=`pip install --no-cache-dir --upgrade ebaws.py 2>&1`
+    PIP_OUT=`PATH=$PATH:/usr/local/bin pip install --no-cache-dir --upgrade ebaws.py 2>&1`
     PIP_STATUS=$?
     set -e
 
