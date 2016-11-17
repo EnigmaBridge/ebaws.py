@@ -890,7 +890,8 @@ class App(Cmd):
             print('We need your email address for:\n'
                   '   a) identity verification in case of a recovery / support \n'
                   '   b) LetsEncrypt certificate registration')
-            print('It\'s optional but we highly recommend to enter a valid e-mail address (especially on a production system)\n')
+            print('It\'s optional but we highly recommend to enter a valid e-mail address'
+                  ' (especially on a production system)\n')
 
         # Asking for email - interactive
         while not confirmation:
