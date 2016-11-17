@@ -554,11 +554,13 @@ class App(Cmd):
         args_is_vpc = self.get_args_vpc()
 
         if args_le_preferred_method is not None and args_le_preferred_method != config.le_preferred_verification:
-            print('\nOverriding LetsEncrypt preferred method, settings: %s, new: %s' % (config.le_preferred_verification, args_le_preferred_method))
+            print('\nOverriding LetsEncrypt preferred method, settings: %s, new: %s'
+                  % (config.le_preferred_verification, args_le_preferred_method))
             config.le_preferred_verification = args_le_preferred_method
 
         if args_is_vpc is not None and args_is_vpc != config.is_private_network:
-            print('\nOverriding is private network settings, settings.private: %s, new.private: %s' % (config.is_private_network, args_is_vpc))
+            print('\nOverriding is private network settings, settings.private: %s, new.private: %s'
+                  % (config.is_private_network, args_is_vpc))
             config.is_private_network = args_is_vpc == 1
 
         if config.is_private_network \
@@ -581,7 +583,8 @@ class App(Cmd):
                 return self.return_code(3)
 
         # EJBCA
-        ejbca = Ejbca(print_output=True, jks_pass=config.ejbca_jks_password, config=config, staging=self.args.le_staging)
+        ejbca = Ejbca(print_output=True, jks_pass=config.ejbca_jks_password, config=config,
+                      staging=self.args.le_staging)
         ejbca.set_domains(config.ejbca_domains)
         ejbca.reg_svc = reg_svc
 
@@ -701,8 +704,10 @@ class App(Cmd):
             if new_config.ejbca_hostname is not None \
                     and not new_config.ejbca_hostname_custom \
                     and new_config.ejbca_hostname not in new_config.domains:
-                print('\nWarning! Returned domains do not correspond to the domain used during EJBCA installation %s' % new_config.ejbca_hostname)
-                print('\nThe PKI instance must be redeployed. This operations is not yet supported, please email to support@enigmabridge.com')
+                print('\nWarning! Returned domains do not correspond to the domain used during EJBCA installation %s'
+                      % new_config.ejbca_hostname)
+                print('\nThe PKI instance must be redeployed. This operations is not yet supported, please email '
+                      'to support@enigmabridge.com')
 
             Core.write_configuration(new_config)
             return self.return_code(0)
@@ -776,8 +781,9 @@ class App(Cmd):
             self.last_le_port_open = True
             return True
 
-        print('\nLetsEncrypt port %d is firewalled, please make sure it is reachable on the public interface %s' % (letsencrypt.PORT, ip))
-        print('Please check AWS Security Groups - Inbound firewall rules for TCP port %d' % (letsencrypt.PORT))
+        print('\nLetsEncrypt port %d is firewalled, please make sure it is reachable on the public interface %s'
+              % (letsencrypt.PORT, ip))
+        print('Please check AWS Security Groups - Inbound firewall rules for TCP port %d' % letsencrypt.PORT)
 
         if self.noninteractive or one_attempt:
             return False
@@ -788,7 +794,8 @@ class App(Cmd):
         else:
             proceed_option = self.PROCEED_YES
             while proceed_option == self.PROCEED_YES:
-                proceed_option = self.ask_proceed_quit('Do you want to try the port again? (Y / n = next step / q = quit): ')
+                proceed_option = self.ask_proceed_quit('Do you want to try the port again? '
+                                                       '(Y / n = next step / q = quit): ')
                 if proceed_option == self.PROCEED_NO:
                     return True
                 elif proceed_option == self.PROCEED_QUIT:
@@ -813,14 +820,16 @@ class App(Cmd):
             print('\nPublicly trusted certificate installed (issued by LetsEncrypt)')
 
         else:
-            print('\nFailed to install publicly trusted certificate, self-signed certificate will be used instead, code=%s.' % ret)
+            print('\nFailed to install publicly trusted certificate, self-signed certificate will be used instead, '
+                  'code=%s.' % ret)
             print('You can try it again later with command renew\n')
         return ret
 
     def le_renew(self, ejbca):
         le_test = LetsEncrypt(staging=self.args.le_staging)
 
-        renew_needed = self.args.force or le_test.test_certificate_for_renew(domain=ejbca.hostname, renewal_before=60*60*24*20) != 0
+        renew_needed = self.args.force or le_test.test_certificate_for_renew(domain=ejbca.hostname,
+                                                                             renewal_before=60*60*24*20) != 0
         if not renew_needed:
             print('\nRenewal for %s is not needed now. Run with --force to override this' % ejbca.hostname)
             return 0
@@ -857,7 +866,8 @@ class App(Cmd):
             print('It will take approximately 2 minutes...')
             code, swap_name, swap_size = syscfg.create_swap()
             if code == 0:
-                print('\nNew swap file was created %s %d MB and activated' % (swap_name,int(math.ceil(total_mem/1024/1024))))
+                print('\nNew swap file was created %s %d MB and activated'
+                      % (swap_name,int(math.ceil(total_mem/1024/1024))))
             else:
                 print('\nSwap file could not be created. Please, inspect the problem and try again')
                 return self.return_code(1)
@@ -880,7 +890,8 @@ class App(Cmd):
             print('')
             time.sleep(0.1)
 
-    def ask_proceed_quit(self, question=None, support_non_interactive=False, non_interactive_return=PROCEED_YES, quit_enabled=True):
+    def ask_proceed_quit(self, question=None, support_non_interactive=False,
+                         non_interactive_return=PROCEED_YES, quit_enabled=True):
         """Ask if user wants to proceed"""
         opts = 'Y/n/q' if quit_enabled else 'Y/n'
         question = question if question is not None else ('Do you really want to proceed? (%s): ' % opts)
@@ -917,9 +928,10 @@ class App(Cmd):
 
     def ask_proceed(self, question=None, support_non_interactive=False, non_interactive_return=True):
         """Ask if user wants to proceed"""
+        def_return = self.PROCEED_YES if non_interactive_return else self.PROCEED_NO
         ret = self.ask_proceed_quit(question=question,
                                     support_non_interactive=support_non_interactive,
-                                    non_interactive_return=self.PROCEED_YES if non_interactive_return else self.PROCEED_NO,
+                                    non_interactive_return=def_return,
                                     quit_enabled=False)
 
         return ret == self.PROCEED_YES
@@ -1102,7 +1114,9 @@ class App(Cmd):
                                  'accessible from the outside - NAT/Firewall). 1 for VPC, 0 for public IP')
 
         parser.add_argument('--le-verification', dest='le_verif', default=None,
-                            help='Preferred LetsEncrypt domain verification method (%s, %s)' % (LE_VERIFY_TLSSNI, LE_VERIFY_DNS))
+                            help='Preferred LetsEncrypt domain verification method (%s, %s)'
+                                 % (LE_VERIFY_TLSSNI, LE_VERIFY_DNS))
+
         parser.add_argument('--le-staging', dest='le_staging', action='store_const', const=True, default=False,
                             help='Uses staging CA without rate limiting')
 
