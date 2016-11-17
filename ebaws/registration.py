@@ -118,7 +118,7 @@ class Registration(object):
         self.eb_config = eb_config
         self.config = config
         self.eb_settings = eb_settings
-        self.user_reg_type = 'test'
+        self.user_reg_type = None
         self.env = ENVIRONMENT_DEVELOPMENT
 
         self.key = None
@@ -216,7 +216,7 @@ class Registration(object):
         if self.config is not None:
             return self.config.email
 
-    def get_auth_types(self):
+    def load_auth_types(self):
         """
         Requests all available authentication methods allowed for given user type
         :return:
@@ -225,6 +225,13 @@ class Registration(object):
         # Step 1: get possible authentication methods for the client.
         if self.eb_config is None:
             self.eb_config = Core.get_default_eb_config()
+
+        if self.user_reg_type is None:
+            if self.eb_settings is not None and self.eb_settings.user_reg_type is not None:
+                self.user_reg_type = self.eb_settings.user_reg_type
+
+        if self.user_reg_type is None:
+            self.user_reg_type = 'test'
 
         client_data_req = {
             'type': self.user_reg_type
