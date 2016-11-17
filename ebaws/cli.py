@@ -133,6 +133,7 @@ class App(Cmd):
          - EnigmaBridge PKCS#11 Proxy is configured, new token is initialized
          - EJBCA is reinstalled with PKCS#11 support, with new certificates
         Previous configuration data is backed up.
+        :type line: object
         """
         if not self.check_root() or not self.check_pid():
             return self.return_code(1)
@@ -189,6 +190,7 @@ class App(Cmd):
             return self.return_code(1)
 
         print('-'*self.get_term_width())
+        # noinspection PyBroadException
         try:
             self.reg_svc = Registration(email=self.email, eb_config=self.eb_cfg, eb_settings=self.eb_settings)
             self.soft_config = SoftHsmV1Config()
