@@ -278,7 +278,20 @@ class App(Cmd):
 
             # New client registration (new username, password, apikey).
             # This step may require email validation to continue.
-            new_config = self.reg_svc.new_registration()
+            try:
+                new_config = self.reg_svc.new_registration()
+            except Exception as e:
+                if self.debug:
+                    traceback.print_exc()
+                logger.debug('Exception in registration: %s' % e)
+
+                if self.reg_svc.is_auth_needed():
+                    print(self.t.red('Error in the registration, probably problem with the challenge. '))
+                else:
+                    print(self.t.red('Error in the registration'))
+                print('Please, try again. If problem persists, '
+                      'please contact our support at https://enigmabridge.freshdesk.com')
+                return self.return_code(14)
 
             # Custom hostname for EJBCA - not yet supported
             new_config.ejbca_hostname_custom = False
