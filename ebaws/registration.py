@@ -5,6 +5,7 @@ from errors import *
 import requests
 import util
 import re
+import errors
 import consts
 import OpenSSL
 import json
@@ -100,6 +101,13 @@ class InfoLoader(object):
         pass
 
 
+class EBRegAuth(object):
+    def __init__(self, method=None, init_needed=False, init_data=None, *args, **kwargs):
+        self.method = method
+        self.init_needed = init_needed
+        self.init_data = init_data
+
+
 class Registration(object):
     """
     Takes care about registration process
@@ -110,7 +118,9 @@ class Registration(object):
         self.eb_config = eb_config
         self.config = config
         self.eb_settings = eb_settings
+        self.user_reg_type = 'test'
         self.env = ENVIRONMENT_DEVELOPMENT
+
         self.key = None
         self.crt = None
         self.key_path = None
@@ -127,6 +137,11 @@ class Registration(object):
 
         self.id_string = None
         self.ami_details = None
+
+        self.reg_auth_methods = []
+        self.reg_auth_chosen = None
+        self.reg_token = 'LSQJCHT61VTEMFQBZADO'
+        self.auth_data = None
 
         self.info_loader = InfoLoader()
         self.info_loader.load()
@@ -195,6 +210,99 @@ class Registration(object):
 
         return 0
 
+    def get_email(self):
+        if self.email is not None:
+            return self.email
+        if self.config is not None:
+            return self.config.email
+
+    def get_auth_types(self):
+        """
+        Requests all available authentication methods allowed for given user type
+        :return:
+        """
+
+        # Step 1: get possible authentication methods for the client.
+        if self.eb_config is None:
+            self.eb_config = Core.get_default_eb_config()
+
+        client_data_req = {
+            'type': self.user_reg_type
+        }
+
+        get_auth_req = GetClientAuthRequest(client_data=client_data_req, env=self.env, config=self.eb_config)
+        get_auth_resp = get_auth_req.call()
+        if 'authentication' not in get_auth_resp:
+            raise InvalidResponse('Authentication types not present in the response')
+
+        for m in get_auth_resp['authentication']:
+            auth_m = EBRegAuth(method=m['method'], init_needed=m['init'])
+            if 'initdata' in m:
+                auth_m.init_data = m['initdata']
+            self.reg_auth_methods.append(auth_m)
+
+        if len(self.reg_auth_methods) == 0:
+            raise InvalidResponse('No authentication methods available for this user type')
+
+        # Step 2: choose the method
+        # for now, we choose method without auth OR the first one
+        no_auth_meths = [x for x in self.reg_auth_methods if not x.init_needed]
+        if len(no_auth_meths) > 0:
+            self.reg_auth_chosen = no_auth_meths[0]
+        else:
+            self.reg_auth_chosen = self.reg_auth_methods[0]
+
+    def is_auth_needed(self):
+        """
+        Returns true if the selected auth method requires explicit authentication, e.g. via mail confirmation.
+        :return:
+        """
+        if self.reg_auth_chosen is None:
+            raise InvalidStatus('No registration loaded')
+
+        return self.reg_auth_chosen.init_needed
+
+    def is_email_required(self):
+        """
+        Returns true if email is required for further registration.
+        This is simplified for the moment, we consider the auth with init needed as the one with email.
+        :return:
+        """
+        return self.is_auth_needed()
+
+    def init_auth(self):
+        """
+        Initializes a new registration process with the EB registration servers.
+        :return:
+        """
+        if not self.is_auth_needed():
+            return 0
+
+        if self.config is None:
+            raise ValueError('Configuration is not set')
+
+        if self.eb_config is None:
+            self.eb_config = Core.get_default_eb_config()
+
+        client_data_req = {
+            'type': self.user_reg_type,
+            'method': self.reg_auth_chosen.method,
+            'email': self.get_email()
+        }
+
+        init_auth_req = InitClientAuthRequest(client_data=client_data_req, env=self.env, config=self.eb_config)
+        init_auth_resp = init_auth_req.call()
+        if 'clientid' not in init_auth_resp:
+            raise InvalidResponse('Authentication initialization fails')
+
+        self.config.client_id = init_auth_resp['clientid']
+        self.config.two_stage_registration_waiting = True
+
+        if 'authdata' in init_auth_resp:
+            self.auth_data = init_auth_resp['authdata']
+
+        return 0
+
     def new_registration(self):
         """
         Creates a new registration, returns new configuration object
@@ -216,10 +324,11 @@ class Registration(object):
         client_data_reg = {
             'name': self.id_string,
             'authentication': 'type',
-            'type': 'test',
-            'token': 'LSQJCHT61VTEMFQBZADO',
+            'clientid': self.config.client_id,
+            'type': self.user_reg_type,
+            'token': self.reg_token,
             'ami': self.ami_details,
-            'email': self.email
+            'email': self.get_email()
         }
 
         regreq = RegistrationRequest(client_data=client_data_reg, env=self.env, config=self.eb_config)
@@ -250,12 +359,13 @@ class Registration(object):
             raise InvalidResponse('ApiKey was not present in the getApiKey response')
 
         # Step 3: save new identity configuration
-        self.config.email = self.email
+        self.config.email = self.get_email()
         self.config.username = regresponse['username']
         self.config.password = regresponse['password']
         self.config.apikey = apiresponse['apikey']
         self.config.servers = apiresponse['servers']
         self.config.generated_time = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
+        self.config.two_stage_registration_waiting = False
         return self.config
 
     def new_domain(self):
