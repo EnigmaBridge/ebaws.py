@@ -135,6 +135,7 @@ class App(Cmd):
         if self.args.reg_type is not None:
             self.user_reg_type = self.args.reg_type
 
+        # Configuration read, if any
         config = Core.read_configuration()
         if config is not None and config.has_nonempty_config():
             print('\nWARNING! This is a destructive process!')
@@ -153,8 +154,11 @@ class App(Cmd):
             fname = Core.backup_configuration(config)
             print('Configuration has been backed up: %s\n' % fname)
 
-        # Reinit
+        # Reinit, ask for email
         email = self.ask_for_email()
+        if email == 1:
+            return self.return_code(1, True)
+
         eb_cfg = Core.get_default_eb_config()
 
         # Ask user explicitly if he wants to continue with the registration process.
@@ -785,8 +789,10 @@ class App(Cmd):
             print('')
         return 0
 
-    def return_code(self, code=0):
+    def return_code(self, code=0, if_interactive_return_ok=False):
         self.last_result = code
+        if if_interactive_return_ok:
+            return 0
         return code
 
     def cli_sleep(self, iter=5):
@@ -838,42 +844,74 @@ class App(Cmd):
 
         return ret == self.PROCEED_YES
 
-    def ask_for_email(self):
+    def ask_for_email(self, is_required=None):
         """Asks user for an email address"""
         confirmation = False
         var = None
 
+        # For different user modes we require an email - validation is performed with it.
+        if is_required is None and self.user_reg_type is not None and self.user_reg_type != 'test':
+            is_required = True
+        if is_required is None:
+            is_required = False
+
         # Take email from the command line
         if self.args.email is not None:
             self.args.email = self.args.email.strip()
+
             print('Using email passed as an argument: %s' % self.args.email)
             if len(self.args.email) > 0 and not util.safe_email(self.args.email):
                 print('Email you have entered is invalid, cannot continue')
                 raise ValueError('Invalid email address')
+
+            elif is_required and len(self.args.email) == 0:
+                print(self.t.red('Email is required in this mode'))
+                raise ValueError('Email is required')
+
             else:
                 return self.args.email
 
         # Noninteractive mode - use empty email address if got here
         if self.noninteractive:
-            return ''
+            if is_required:
+                print(self.t.red('Email address is required to continue with the registration, cannot continue'))
+                raise ValueError('Email is required')
+            else:
+                return ''
 
-        print('We need your email address for:\n'
-              '   a) identity verification in case of a recovery / support \n'
-              '   b) LetsEncrypt certificate registration')
-        print('It\'s optional but we highly recommend to enter a valid e-mail address (especially on a production system)\n')
+        # Explain why we need an email.
+        if is_required:
+            print('We need your email address for:\n'
+                  '   a) identity verification for EnigmaBridge account \n'
+                  '   b) LetsEncrypt certificate registration')
+            print('We will send you a verification email.')
+            print('Without a valid e-mail address you won\'t be able to continue with the installation\n')
+        else:
+            print('We need your email address for:\n'
+                  '   a) identity verification in case of a recovery / support \n'
+                  '   b) LetsEncrypt certificate registration')
+            print('It\'s optional but we highly recommend to enter a valid e-mail address (especially on a production system)\n')
 
         # Asking for email - interactive
         while not confirmation:
-            var = raw_input('Please enter your email address [empty]: ').strip()
+            var = raw_input('Please enter your email address%s: ' % ('' if is_required else ' [empty]')).strip()
             question = None
             if len(var) == 0:
-                question = 'You have entered an empty email address, is it correct? (Y/n):'
+                if is_required:
+                    print('Email address is required, cannot be empty')
+                    continue
+                else:
+                    question = 'You have entered an empty email address, is it correct? (Y/n):'
             elif not util.safe_email(var):
                 print('Email you have entered is invalid, try again')
                 continue
             else:
-                question = 'Is this email correct? \'%s\' (Y/n):' % var
-            confirmation = self.ask_proceed(question)
+                question = 'Is this email correct? \'%s\' (Y/n/q):' % var
+            confirmation = self.ask_proceed_quit(question)
+            if confirmation == self.PROCEED_QUIT:
+                return self.return_code(1)
+            confirmation = confirmation == self.PROCEED_YES
+
         return var
 
     def is_args_le_verification_set(self):
