@@ -1064,28 +1064,28 @@ class App(Cmd):
         if self.args.reg_token is not None:
             self.args.reg_token = self.args.reg_token.strip()
 
-            print('Using registration token passed as an argument: %s' % self.args.reg_token)
+            print('Using registration challenge token passed as an argument: %s' % self.args.reg_token)
             if len(self.args.reg_token) > 0:
-                print('Registration token is empty')
-                raise ValueError('Invalid registration token')
+                print('Registration challenge token is empty')
+                raise ValueError('Invalid registration challenge token')
 
             else:
                 return self.args.reg_token
 
         # Noninteractive mode - use empty email address if got here
         if self.noninteractive:
-            raise ValueError('Registration token is required')
+            raise ValueError('Registration challenge token is required')
 
         # Asking for email - interactive
         while not confirmation:
-            var = raw_input('Please enter the token: ').strip()
+            var = raw_input('Please enter the challenge: ').strip()
             question = None
             if len(var) == 0:
-                print('Registration token cannot be empty')
+                print('Registration challenge token cannot be empty')
                 continue
 
             else:
-                question = 'Is this token correct? \'%s\' (Y/n/q):' % var
+                question = 'Is this challenge correct? \'%s\' (Y/n/q):' % var
             confirmation = self.ask_proceed_quit(question)
             if confirmation == self.PROCEED_QUIT:
                 return self.return_code(1)
