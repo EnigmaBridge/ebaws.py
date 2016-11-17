@@ -175,33 +175,36 @@ class App(Cmd):
             fname = Core.backup_configuration(self.config)
             print('Configuration has been backed up: %s\n' % fname)
 
-        # Reinit, ask for email
-        self.email = self.ask_for_email()
-        if isinstance(self.email, types.IntType):
-            return self.return_code(1, True)
-
-        self.eb_cfg = Core.get_default_eb_config()
-        self.config = Config(eb_config=self.eb_cfg)
-
-        # Ask user explicitly if he wants to continue with the registration process.
-        # Terms & Conditions of the AMIs tells us to ask user whether we can connect to the servers.
-        self.init_print_intro()
-        should_continue = self.ask_proceed('Do you agree with the installation process as outlined above? (Y/n): ',
-                                           support_non_interactive=True)
-        if not should_continue:
-            return self.return_code(1)
-
-        print('-'*self.get_term_width())
-
         # Main try-catch block for the overal init operation.
         # noinspection PyBroadException
         try:
-            self.reg_svc = Registration(email=self.email, config=self.config,
+            self.eb_cfg = Core.get_default_eb_config()
+            self.config = Config(eb_config=self.eb_cfg)
+
+            self.reg_svc = Registration(email=None, config=self.config,
                                         eb_config=self.eb_cfg, eb_settings=self.eb_settings)
 
             self.soft_config = SoftHsmV1Config()
             self.ejbca = Ejbca(print_output=True, staging=self.args.le_staging)
             self.syscfg = SysConfig(print_output=True)
+
+            # Get registration options and choose one.
+            self.reg_svc.load_auth_types()
+
+            # Reinit, ask for email
+            self.email = self.ask_for_email(is_required=self.reg_svc.is_email_required())
+            if isinstance(self.email, types.IntType):
+                return self.return_code(1, True)
+
+            # Ask user explicitly if he wants to continue with the registration process.
+            # Terms & Conditions of the AMIs tells us to ask user whether we can connect to the servers.
+            self.init_print_intro()
+            should_continue = self.ask_proceed('Do you agree with the installation process as outlined above? (Y/n): ',
+                                               support_non_interactive=True)
+            if not should_continue:
+                return self.return_code(1)
+
+            print('-'*self.get_term_width())
 
             # Check if we have EJBCA resources on the drive
             if not self.ejbca.test_environment():
@@ -228,6 +231,14 @@ class App(Cmd):
             if res != 0:
                 return self.return_code(res)
 
+            # User registration may be multi-step process.
+            if self.reg_svc.is_auth_needed():
+                self.reg_svc.init_auth()
+                print('-'*self.get_term_width())
+                print('We sent you an email to %s with the verification token.' % self.email)
+                print('After the email arrives, please enter the token.')
+                self.reg_svc.reg_token = self.ask_for_token()
+
             # Creates a new RSA key-pair identity
             # Identity relates to bound DNS names and username.
             # Requests for DNS manipulation need to be signed with the private key.
@@ -235,7 +246,6 @@ class App(Cmd):
 
             # New client registration (new username, password, apikey).
             # This step may require email validation to continue.
-            # TODO: split to 2 parts... we may want to continue previous registration or start a new one...
             new_config = self.reg_svc.new_registration()
 
             # Custom hostname for EJBCA - not yet supported
@@ -1010,6 +1020,47 @@ class App(Cmd):
 
         return var
 
+    def ask_for_token(self):
+        """
+        Asks for the verification token for the EB user registration
+        :return:
+        """
+        confirmation = False
+        var = None
+
+        # Take reg token from the command line
+        if self.args.reg_token is not None:
+            self.args.reg_token = self.args.reg_token.strip()
+
+            print('Using registration token passed as an argument: %s' % self.args.reg_token)
+            if len(self.args.reg_token) > 0:
+                print('Registration token is empty')
+                raise ValueError('Invalid registration token')
+
+            else:
+                return self.args.reg_token
+
+        # Noninteractive mode - use empty email address if got here
+        if self.noninteractive:
+            raise ValueError('Registration token is required')
+
+        # Asking for email - interactive
+        while not confirmation:
+            var = raw_input('Please enter the token: ').strip()
+            question = None
+            if len(var) == 0:
+                print('Registration token cannot be empty')
+                continue
+
+            else:
+                question = 'Is this token correct? \'%s\' (Y/n/q):' % var
+            confirmation = self.ask_proceed_quit(question)
+            if confirmation == self.PROCEED_QUIT:
+                return self.return_code(1)
+            confirmation = confirmation == self.PROCEED_YES
+
+        return var
+
     def is_args_le_verification_set(self):
         """True if LetsEncrypt domain verification is set in command line - potential override"""
         return self.args.le_verif is not None
@@ -1111,6 +1162,8 @@ class App(Cmd):
 
         parser.add_argument('--reg-type', dest='reg_type', default=None,
                             help='Optional user registration type')
+        parser.add_argument('--reg-token', dest='reg_token', default=None,
+                            help='Optional user registration token')
 
         parser.add_argument('--vpc', dest='is_vpc', default=None, type=int,
                             help='Sets whether the installation is in Virtual Private Cloud (VPC, public IP is not '
