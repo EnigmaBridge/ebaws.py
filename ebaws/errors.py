@@ -13,6 +13,10 @@ class InvalidStatus(Error):
     """Invalid server response"""
 
 
+class InvalidState(Error):
+    """Invalid internal state"""
+
+
 class RequestFailed(Error):
     """API request failed"""
 
