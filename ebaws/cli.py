@@ -199,34 +199,8 @@ class App(Cmd):
 
             # Lets encrypt reachability test, if preferred method is DNS - do only one attempt.
             # We test this to detect VPC also. If 443 is reachable, we are not in VPC
-            port_ok = self.le_check_port(critical=False, one_attempt=args_le_preferred_method == LE_VERIFY_DNS)
-            if not port_ok and args_le_preferred_method != LE_VERIFY_DNS:
-                return self.return_code(10)
-
-            # Is it VPC?
-            # If user explicitly selects VPC then this is not printed
-            # Otherwise we have to ask, because it can be just the case 443 is firewalled.
-            if args_is_vpc is None and not self.last_le_port_open:
-                print('-'*self.get_term_width())
-                print('\n - TCP port 443 was not reachable on the public IP %s' % reg_svc.info_loader.ami_public_ip)
-                print(' - You are probably behind NAT, in a virtual private cloud (VPC) or firewalled by other means')
-                print(' - LetsEncrypt validation will now use DNS method\n')
-                args_le_preferred_method = LE_VERIFY_DNS
-
-                self.last_is_vpc = self.ask_proceed('Are you in VPC / behind firewall / NAT ?\n'
-                                                    'If yes, we will configure your private IP %s '
-                                                    'in the DNS (y=VPC / n=public): ' % reg_svc.info_loader.ami_local_ip)
-                print('-'*self.get_term_width())
-
-            if args_is_vpc == 1:
-                self.last_is_vpc = True
-            elif args_is_vpc == 0:
-                self.last_is_vpc = False
-
-            # Test conflict between VPC and LE verification
-            if self.last_is_vpc and args_le_preferred_method != LE_VERIFY_DNS:
-                print('\nError: LetsEncrypt verification method has to be DNS if 443 is unreachable, overriding')
-                args_le_preferred_method = LE_VERIFY_DNS
+            res, args_le_preferred_method = self.init_le_vpc_check(args_le_preferred_method,
+                                                                   args_is_vpc, reg_svc=reg_svc)
 
             # Creates a new RSA key-pair identity
             # Identity relates to bound DNS names and username.
@@ -460,6 +434,38 @@ class App(Cmd):
                                   'communication the instance will be doing during the installation as outlined in the description above'))
 
         print('')
+
+    def init_le_vpc_check(self, args_le_preferred_method, args_is_vpc, reg_svc):
+        port_ok = self.le_check_port(critical=False, one_attempt=args_le_preferred_method == LE_VERIFY_DNS)
+        if not port_ok and args_le_preferred_method != LE_VERIFY_DNS:
+            return self.return_code(10), None
+
+        # Is it VPC?
+        # If user explicitly selects VPC then this is not printed
+        # Otherwise we have to ask, because it can be just the case 443 is firewalled.
+        if args_is_vpc is None and not self.last_le_port_open:
+            print('-'*self.get_term_width())
+            print('\n - TCP port 443 was not reachable on the public IP %s' % reg_svc.info_loader.ami_public_ip)
+            print(' - You are probably behind NAT, in a virtual private cloud (VPC) or firewalled by other means')
+            print(' - LetsEncrypt validation will now use DNS method\n')
+            args_le_preferred_method = LE_VERIFY_DNS
+
+            self.last_is_vpc = self.ask_proceed('Are you in VPC / behind firewall / NAT ?\n'
+                                                'If yes, we will configure your private IP %s '
+                                                'in the DNS (y=VPC / n=public): ' % reg_svc.info_loader.ami_local_ip)
+            print('-'*self.get_term_width())
+
+        if args_is_vpc == 1:
+            self.last_is_vpc = True
+        elif args_is_vpc == 0:
+            self.last_is_vpc = False
+
+        # Test conflict between VPC and LE verification
+        if self.last_is_vpc and args_le_preferred_method != LE_VERIFY_DNS:
+            print('\nError: LetsEncrypt verification method has to be DNS if 443 is unreachable, overriding')
+            args_le_preferred_method = LE_VERIFY_DNS
+
+        return 0, args_le_preferred_method
 
     def do_renew(self, arg):
         """Renews LetsEncrypt certificates used for the JBoss"""
