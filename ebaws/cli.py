@@ -59,6 +59,7 @@ class App(Cmd):
         self.soft_config = None
         self.ejbca = None
         self.syscfg = None
+        self.eb_cfg = None
 
         self.noninteractive = False
         self.version = self.load_version()
