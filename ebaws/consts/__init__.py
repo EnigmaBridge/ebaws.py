@@ -19,6 +19,9 @@ LE_VERIFY_DEFAULT = LE_VERIFY_TLSSNI
 
 EC2META_FILES = ['/opt/aws/bin/ec2-metadata']
 
+SETTINGS_FILE = 'eb-settings.json'
+SETTINGS_FOLDERS = ['/etc/enigma', '/usr/local/etc/enigma', '/opt/enigmabridge/etc/']
+
 ONBOOT_INIT_SCRIPT = """#!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          ebaws-onboot

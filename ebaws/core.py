@@ -1,4 +1,4 @@
-from config import Config
+from config import Config, EBSettings
 from consts import *
 from ebclient import eb_configuration
 import json
@@ -93,4 +93,28 @@ class Core(object):
         cfg.endpoint_register = eb_configuration.Endpoint.url('https://hut6.enigmabridge.com:8445')
         return cfg
 
+    @staticmethod
+    def search_for_settings():
+        """Tries to search for settings file"""
+        for folder in SETTINGS_FOLDERS:
+            cur = os.path.join(folder, SETTINGS_FILE)
+            if os.path.exists(cur) and os.path.isfile(cur):
+                return cur
+        return None
+
+    @staticmethod
+    def read_settings(path=None):
+        """
+        Reads the EB settings if available.
+        Returns tuple (settings, path)
+        :param path:
+        :return:
+        """
+        if path is None:
+            path = Core.search_for_settings()
+            if path is None:
+                return None, None
+
+        settings = EBSettings.from_file(path)
+        return settings, path
 

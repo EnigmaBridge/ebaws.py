@@ -293,4 +293,54 @@ class Config(object):
         return self.resolve_endpoint(SERVER_ENROLLMENT, PROTOCOL_HTTPS)
 
 
+class EBSettings(object):
+    """General EB settings"""
+
+    def __init__(self, json_db=None, eb_config=None, *args, **kwargs):
+        self.json = json_db
+        self.eb_config = eb_config
+
+    @classmethod
+    def from_json(cls, json_string):
+        return cls(json_db=json.loads(json_string, object_pairs_hook=collections.OrderedDict))
+
+    @classmethod
+    def from_file(cls, file_name):
+        with open(file_name, 'r') as f:
+            read_lines = [x.strip() for x in f.read().split('\n')]
+            lines = []
+            for line in read_lines:
+                if line.startswith('//'):
+                    continue
+                lines.append(line)
+
+            return EBSettings.from_json('\n'.join(lines))
+
+    def ensure_config(self):
+        if self.json is None:
+            self.json = collections.OrderedDict()
+        if 'config' not in self.json:
+            self.json['config'] = collections.OrderedDict()
+
+    def has_nonempty_config(self):
+        return self.json is not None and 'config' in self.json and len(self.json['config']) > 0
+
+    def get_config(self, key, default=None):
+        if not self.has_nonempty_config():
+            return default
+        return self.json['config'][key] if key in self.json['config'] else default
+
+    def set_config(self, key, val):
+        self.ensure_config()
+        self.json['config'][key] = val
+
+    # user_reg_type ?
+    @property
+    def user_reg_type(self):
+        return self.get_config('user_reg_type', default=False)
+
+    @user_reg_type.setter
+    def user_reg_type(self, val):
+        self.set_config('user_reg_type', val)
+
 
