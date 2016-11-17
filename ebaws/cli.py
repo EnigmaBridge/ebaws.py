@@ -164,8 +164,8 @@ class App(Cmd):
             previous_registration_continue = should_continue
 
         if config_exists and not previous_registration_continue:
-            print('\nWARNING! This is a destructive process!')
-            print('WARNING! The previous installation will be overwritten.\n')
+            print(self.t.red('\nWARNING! This is a destructive process!'))
+            print(self.t.red('WARNING! The previous installation will be overwritten.\n'))
             should_continue = self.ask_proceed(support_non_interactive=True)
             if not should_continue:
                 return self.return_code(1)
