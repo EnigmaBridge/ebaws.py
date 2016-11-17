@@ -201,6 +201,8 @@ class App(Cmd):
             # We test this to detect VPC also. If 443 is reachable, we are not in VPC
             res, args_le_preferred_method = self.init_le_vpc_check(args_le_preferred_method,
                                                                    args_is_vpc, reg_svc=reg_svc)
+            if res != 0:
+                return self.return_code(res)
 
             # Creates a new RSA key-pair identity
             # Identity relates to bound DNS names and username.
@@ -220,7 +222,7 @@ class App(Cmd):
             res, domain_is_ok = self.init_domains_check(reg_svc=reg_svc)
             new_config = reg_svc.config
             if res != 0:
-                self.return_code(res)
+                return self.return_code(res)
 
             # Install to the OS
             syscfg.install_onboot_check()
