@@ -153,12 +153,17 @@ class App(Cmd):
 
         # Configuration read, if any
         self.config = Core.read_configuration()
+        config_exists = self.config is not None and self.config.has_nonempty_config()
+        previous_registration_continue = False
 
         # there may be 2-stage registration waiting to finish - continue with the registration
-        if self.config is not None and self.config.has_nonempty_config() and self.config.two_stage_registration_waiting:
-            pass
+        if config_exists and self.config.two_stage_registration_waiting:
+            print('\nThere is a previous unfinished registration in progress for email: %s' % self.config.email)
+            should_continue = self.ask_proceed(question='Do you want to continue with this registration? (y/n): ',
+                                               support_non_interactive=True)
+            previous_registration_continue = should_continue
 
-        if self.config is not None and self.config.has_nonempty_config():
+        if config_exists and not previous_registration_continue:
             print('\nWARNING! This is a destructive process!')
             print('WARNING! The previous installation will be overwritten.\n')
             should_continue = self.ask_proceed(support_non_interactive=True)
@@ -179,9 +184,12 @@ class App(Cmd):
         # noinspection PyBroadException
         try:
             self.eb_cfg = Core.get_default_eb_config()
-            self.config = Config(eb_config=self.eb_cfg)
+            if previous_registration_continue:
+                self.config.eb_config = self.eb_cfg
+            else:
+                self.config = Config(eb_config=self.eb_cfg)
 
-            self.reg_svc = Registration(email=None, config=self.config,
+            self.reg_svc = Registration(email=self.config.email, config=self.config,
                                         eb_config=self.eb_cfg, eb_settings=self.eb_settings)
 
             self.soft_config = SoftHsmV1Config()
@@ -191,21 +199,30 @@ class App(Cmd):
             # Get registration options and choose one.
             self.reg_svc.load_auth_types()
 
-            # Reinit, ask for email
-            self.email = self.ask_for_email(is_required=self.reg_svc.is_email_required())
-            if isinstance(self.email, types.IntType):
-                return self.return_code(1, True)
+            # Show email prompt and intro text only for new initializations.
+            if not previous_registration_continue:
+                # Ask for email if we don't have any (e.g., previous unfinished reg).
+                self.email = self.ask_for_email(is_required=self.reg_svc.is_email_required())
+                if isinstance(self.email, types.IntType):
+                    return self.return_code(1, True)
+                else:
+                    self.config.email = self.email
 
-            # Ask user explicitly if he wants to continue with the registration process.
-            # Terms & Conditions of the AMIs tells us to ask user whether we can connect to the servers.
-            self.init_print_intro()
-            should_continue = self.ask_proceed('Do you agree with the installation process as outlined above? (Y/n): ',
-                                               support_non_interactive=True)
-            if not should_continue:
-                return self.return_code(1)
+                # Ask user explicitly if he wants to continue with the registration process.
+                # Terms & Conditions of the AMIs tells us to ask user whether we can connect to the servers.
+                self.init_print_intro()
+                should_continue = self.ask_proceed('Do you agree with the installation process '
+                                                   'as outlined above? (Y/n): ',
+                                                   support_non_interactive=True)
+                if not should_continue:
+                    return self.return_code(1)
 
-            print('-'*self.get_term_width())
+                print('-'*self.get_term_width())
+            else:
+                self.email = self.config.email
 
+            # System check proceeds (mem, network).
+            # We do this even if we continue with previous registration, to have fresh view on the system.
             # Check if we have EJBCA resources on the drive
             if not self.ejbca.test_environment():
                 print(self.t.red('\nError: Environment is damaged, some assets are missing for the key management '
@@ -232,7 +249,11 @@ class App(Cmd):
                 return self.return_code(res)
 
             # User registration may be multi-step process.
-            if self.reg_svc.is_auth_needed():
+            if previous_registration_continue:
+                print('We sent you an email to %s with the verification token.' % self.email)
+                self.reg_svc.reg_token = self.ask_for_token()
+
+            elif self.reg_svc.is_auth_needed():
                 self.reg_svc.init_auth()
                 print('-'*self.get_term_width())
                 print('We sent you an email to %s with the verification token.' % self.email)
