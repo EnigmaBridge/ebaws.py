@@ -217,42 +217,10 @@ class App(Cmd):
             new_config.le_preferred_verification = args_le_preferred_method
 
             # Assign a new dynamic domain for the host
-            domain_is_ok = False
-            domain_ignore = False
-            domain_ctr = 0
-            while not domain_is_ok and domain_ctr < 3:
-                try:
-                    new_config = reg_svc.new_domain()
-                    new_config = reg_svc.refresh_domain()
-
-                    if new_config.domains is not None and len(new_config.domains) > 0:
-                        domain_is_ok = True
-                        print('\nNew domains registered for this host: ')
-                        for domain in new_config.domains:
-                            print('  - %s' % domain)
-                        print('')
-
-                except Exception as e:
-                    domain_ctr += 1
-                    if self.args.debug:
-                        traceback.print_exc()
-
-                    if self.noninteractive:
-                        if domain_ctr >= self.args.attempts:
-                            break
-                    else:
-                        print('\nError during domain registration, no dynamic domain will be assigned')
-                        should_continue = self.ask_proceed('Do you want to try again? (Y/n): ')
-                        if not should_continue:
-                            break
-
-            # Is it OK if domain assignment failed?
-            if not domain_is_ok:
-                if domain_ignore:
-                    print('\nDomain could not be assigned, installation continues. You can try domain reassign later')
-                else:
-                    print('\nDomain could not be assigned, installation aborted')
-                    return self.return_code(1)
+            res, domain_is_ok = self.init_domains_check(reg_svc=reg_svc)
+            new_config = reg_svc.config
+            if res != 0:
+                self.return_code(res)
 
             # Install to the OS
             syscfg.install_onboot_check()
@@ -466,6 +434,51 @@ class App(Cmd):
             args_le_preferred_method = LE_VERIFY_DNS
 
         return 0, args_le_preferred_method
+
+    def init_domains_check(self, reg_svc=None):
+        """
+        Diplays domains registered for this host, checks if the domain registration went well.
+        :param reg_svc:
+        :return:
+        """
+        domain_is_ok = False
+        domain_ignore = False
+        domain_ctr = 0
+        while not domain_is_ok and domain_ctr < 3:
+            try:
+                new_config = reg_svc.new_domain()
+                new_config = reg_svc.refresh_domain()
+
+                if new_config.domains is not None and len(new_config.domains) > 0:
+                    domain_is_ok = True
+                    print('\nNew domains registered for this host: ')
+                    for domain in new_config.domains:
+                        print('  - %s' % domain)
+                    print('')
+
+            except Exception as e:
+                domain_ctr += 1
+                if self.args.debug:
+                    traceback.print_exc()
+
+                if self.noninteractive:
+                    if domain_ctr >= self.args.attempts:
+                        break
+                else:
+                    print(self.t.red('\nError during domain registration, no dynamic domain will be assigned'))
+                    should_continue = self.ask_proceed('Do you want to try again? (Y/n): ')
+                    if not should_continue:
+                        break
+
+        # Is it OK if domain assignment failed?
+        if not domain_is_ok:
+            if domain_ignore:
+                print('\nDomain could not be assigned, installation continues. You can try domain reassign later')
+            else:
+                print('\nDomain could not be assigned, installation aborted')
+                return self.return_code(1), None
+
+        return self.return_code(0), domain_is_ok
 
     def do_renew(self, arg):
         """Renews LetsEncrypt certificates used for the JBoss"""
