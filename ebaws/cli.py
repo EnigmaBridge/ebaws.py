@@ -256,6 +256,7 @@ class App(Cmd):
 
             elif self.reg_svc.is_auth_needed():
                 self.reg_svc.init_auth()
+                Core.write_configuration(self.config)
                 print('-'*self.get_term_width())
                 print('\nIn order to continue with user validation you need a challenge token.')
                 print('We created a new ticket for you in our ticketing system https://enigmabridge.freshdesk.com')
@@ -265,6 +266,11 @@ class App(Cmd):
                 print('  3. Copy the challenge from the ticket below.')
                 self.reg_svc.reg_token = self.ask_for_token()
 
+            else:
+                # Init, but do not wait for token.
+                self.reg_svc.init_auth()
+
+            new_config = self.config
             # Creates a new RSA key-pair identity
             # Identity relates to bound DNS names and username.
             # Requests for DNS manipulation need to be signed with the private key.
