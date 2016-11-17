@@ -19,6 +19,11 @@ from ejbca import Ejbca
 from ebsysconfig import SysConfig
 from letsencrypt import LetsEncrypt
 from pkg_resources import get_distribution, DistributionNotFound
+import logging, coloredlogs
+
+
+logger = logging.getLogger(__name__)
+coloredlogs.install()
 
 
 class App(Cmd):
@@ -995,6 +1000,9 @@ class App(Cmd):
         # Terminate after execution is over on the non-interactive mode
         if self.noninteractive:
             sys.argv.append('quit')
+
+        if self.args.debug:
+            coloredlogs.install(level=logging.DEBUG)
 
         self.cmdloop()
         sys.argv = args_src
