@@ -48,6 +48,7 @@ class App(Cmd):
         self.last_result = 0
         self.last_le_port_open = False
         self.last_is_vpc = False
+        self.user_reg_type = None
 
         self.noninteractive = False
         self.version = self.load_version()
@@ -126,6 +127,13 @@ class App(Cmd):
             return self.return_code(1)
 
         print('Going to install PKI system and enrol it to the Enigma Bridge FIPS140-2 encryption service.\n')
+
+        # EB Settings read. Optional.
+        eb_aws_settings, eb_aws_settings_path = Core.read_settings()
+        if eb_aws_settings is not None:
+            self.user_reg_type = eb_aws_settings.user_reg_type
+        if self.args.reg_type is not None:
+            self.user_reg_type = self.args.reg_type
 
         config = Core.read_configuration()
         if config is not None and config.has_nonempty_config():
@@ -966,6 +974,9 @@ class App(Cmd):
                             help='forces some action (e.g., certificate renewal)')
         parser.add_argument('--email', dest='email', default=None,
                             help='email address to use instead of prompting for one')
+
+        parser.add_argument('--reg-type', dest='reg_type', default=None,
+                            help='Optional user registration type')
 
         parser.add_argument('--vpc', dest='is_vpc', default=None, type=int,
                             help='Sets whether the installation is in Virtual Private Cloud (VPC, public IP is not '
