@@ -112,10 +112,12 @@ aws ec2 register-image --image-location enigma-ami/ejbca/ejbcav1/image.manifest.
 # Prepare an Amazon EBS volume for your new AMI.
 # Check out the size of the created image, has to be at least that large
 #
-aws ec2 create-volume --size 8 --region $AMI_REGION --availability-zone ${AMI_REGION}a --volume-type gp2
+VOLRES=`aws ec2 create-volume --size 8 --region $AMI_REGION --availability-zone ${AMI_REGION}a --volume-type gp2`
+echo $VOLRES
 
 # The command will produce a row like: "VolumeId": "vol-38fcf689", export the value to the env var.
-export VOLUME_ID=vol-xx1122
+#export VOLUME_ID=vol-xx1122
+export VOLUME_ID=`echo $VOLRES | python -c "import sys, json; print json.load(sys.stdin)['VolumeId']"`
 
 # Attach the volume to the AMI
 aws ec2 attach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --device /dev/sdb --region $AMI_REGION
@@ -151,10 +153,12 @@ zerofree -v /dev/sdb1
 aws ec2 detach-volume --volume-id $VOLUME_ID --region $AMI_REGION
 
 # Create snapshot for the AMI
-aws ec2 create-snapshot --region $AMI_REGION --description "EnigmaBridge-EJBCA" --volume-id $VOLUME_ID
+SNAPRES=`aws ec2 create-snapshot --region $AMI_REGION --description "EnigmaBridge-EJBCA" --volume-id $VOLUME_ID`
+echo $SNAPRES
 
 # The command will produce a row like: "SnapshotId": "snap-ef019d24", export the value to the env var.
-export SNAPSHOT_ID=snap-xx112233
+#export SNAPSHOT_ID=snap-xx112233
+export SNAPSHOT_ID=`echo $SNAPRES | python -c "import sys, json; print json.load(sys.stdin)['SnapshotId']"`
 
 # Verify snapshot - wait until the progress is 100%
 aws ec2 describe-snapshots --region $AMI_REGION --snapshot-id $SNAPSHOT_ID
