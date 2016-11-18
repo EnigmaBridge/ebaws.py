@@ -95,6 +95,8 @@ find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'install_0*.properties' -exec shr
 /bin/rm /tmp/openssl_*.log
 /bin/rm /tmp/keytool.log
 /bin/rm /tmp/keytool_*.log
+/bin/rm -rf /tmp/hsperfdata*
+/bin/rm /tmp/yum_save_tx*
 /bin/rm /opt/ejbca_ce_6_3_1_1/p12/*
 find /opt/jboss-eap-6.4.0/standalone/log/ -type f -exec shred -u {} \;
 find /opt/jboss-eap-6.4.0/standalone/configuration/standalone_xml_history/ -type f -exec shred -u {} \;
