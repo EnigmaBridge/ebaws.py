@@ -264,19 +264,7 @@ class App(Cmd):
             elif self.reg_svc.is_auth_needed():
                 self.reg_svc.init_auth()
                 Core.write_configuration(self.config)
-                print('-'*self.get_term_width())
-                print('')
-
-                tmp = 'In order to complete your registration as an Enigma Bridge client, you need to enter a ' \
-                      'challenge. We have created this token in our support system at ' \
-                      'https://enigmabridge.freshdesk.com'
-                print(self.wrap_term(single_string=True, max_width=self.get_term_width(), text=tmp))
-
-                print('\nPlease follow these steps to access the token:')
-                print('  1. Create an account in our support system for %s.' % self.email)
-                print('       An invitation with a direct link should be in your mailbox.')
-                print('  2. You will receive a new ticket notification. Open the ticket link.')
-                print('  3. Copy the challenge from the ticket below.\n')
+                self.init_print_challenge_intro()
                 self.reg_svc.reg_token = self.ask_for_token()
 
             else:
@@ -602,6 +590,21 @@ class App(Cmd):
                 return self.return_code(1), None
 
         return self.return_code(0), domain_is_ok
+
+    def init_print_challenge_intro(self):
+        print('-'*self.get_term_width())
+        print('')
+
+        tmp = 'In order to complete your registration as an Enigma Bridge client, you need to enter a ' \
+              'challenge. We have created this token in our support system at ' \
+              'https://enigmabridge.freshdesk.com'
+        print(self.wrap_term(single_string=True, max_width=self.get_term_width(), text=tmp))
+
+        print('\nPlease follow these steps to access the token:')
+        print('  1. Create an account in our support system for %s.' % self.email)
+        print('       An invitation with a direct link should be in your mailbox.')
+        print('  2. You will receive a new ticket notification. Open the ticket link.')
+        print('  3. Copy the challenge from the ticket below.\n')
 
     def do_renew(self, arg):
         """Renews LetsEncrypt certificates used for the JBoss"""
