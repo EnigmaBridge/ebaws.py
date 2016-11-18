@@ -13,6 +13,7 @@ echo -n '' > /home/ec2-user/.bash_history
 /bin/rm -rf /home/ec2-user/.config/*
 /bin/rm -rf /home/ec2-user/.cache/pip
 /bin/rm -rf /home/ec2-user/ebaws.py
+/bin/rm -rf /home/ec2-user/certbot-external-auth
 
 # root
 /bin/rm /root/.jboss-cli-history
