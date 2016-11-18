@@ -255,18 +255,26 @@ class App(Cmd):
 
             # User registration may be multi-step process.
             if previous_registration_continue:
-                print('Your validation challenge is in the ticket assigned to you in the '
-                      'system https://enigmabridge.freshdesk.com for account %s.' % self.email)
+                tmp = 'Your validation challenge is in the ticket assigned to you in the ' \
+                      'system https://enigmabridge.freshdesk.com for account %s.' % self.email
+                print(self.wrap_term(single_string=True, max_width=self.get_term_width(), text=tmp))
+
                 self.reg_svc.reg_token = self.ask_for_token()
 
             elif self.reg_svc.is_auth_needed():
                 self.reg_svc.init_auth()
                 Core.write_configuration(self.config)
                 print('-'*self.get_term_width())
-                print('\nIn order to continue with user validation you need a challenge token.')
-                print('We created a new ticket for you in our ticketing system https://enigmabridge.freshdesk.com')
-                print('  1. Create an account in the ticket system for %s.' % self.email)
-                print('        You should have email invitation in the mailbox.')
+                print('')
+
+                tmp = 'In order to complete your registration as an Enigma Bridge client, you need to enter a ' \
+                      'challenge. We have created this token in our support system at ' \
+                      'https://enigmabridge.freshdesk.com'
+                print(self.wrap_term(single_string=True, max_width=self.get_term_width(), text=tmp))
+
+                print('\nPlease follow these steps to access the token:')
+                print('  1. Create an account in our support system for %s.' % self.email)
+                print('       An invitation with a direct link should be in your mailbox.')
                 print('  2. You will receive a new ticket notification. Open the ticket link.')
                 print('  3. Copy the challenge from the ticket below.\n')
                 self.reg_svc.reg_token = self.ask_for_token()
@@ -1102,9 +1110,9 @@ class App(Cmd):
         if self.args.reg_token is not None:
             self.args.reg_token = self.args.reg_token.strip()
 
-            print('Using registration challenge token passed as an argument: %s' % self.args.reg_token)
+            print('Using registration challenge passed as an argument: %s' % self.args.reg_token)
             if len(self.args.reg_token) > 0:
-                print('Registration challenge token is empty')
+                print('Registration challenge is empty')
                 raise ValueError('Invalid registration challenge token')
 
             else:
@@ -1112,14 +1120,14 @@ class App(Cmd):
 
         # Noninteractive mode - use empty email address if got here
         if self.noninteractive:
-            raise ValueError('Registration challenge token is required')
+            raise ValueError('Registration challenge is required')
 
         # Asking for email - interactive
         while not confirmation:
             var = raw_input('Please enter the challenge: ').strip()
             question = None
             if len(var) == 0:
-                print('Registration challenge token cannot be empty')
+                print('Registration challenge cannot be empty')
                 continue
 
             else:
