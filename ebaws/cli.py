@@ -263,7 +263,7 @@ class App(Cmd):
                 print('  1. Create an account in the ticket system for %s.' % self.email)
                 print('        You should have email invitation in the mailbox.')
                 print('  2. You will receive a new ticket notification. Open the ticket link.')
-                print('  3. Copy the challenge from the ticket below.')
+                print('  3. Copy the challenge from the ticket below.\n')
                 self.reg_svc.reg_token = self.ask_for_token()
 
             else:
