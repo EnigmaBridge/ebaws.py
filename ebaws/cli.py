@@ -19,6 +19,7 @@ from softhsm import SoftHsmV1Config
 from ejbca import Ejbca
 from ebsysconfig import SysConfig
 from letsencrypt import LetsEncrypt
+from ebclient.registration import ENVIRONMENT_PRODUCTION, ENVIRONMENT_DEVELOPMENT, ENVIRONMENT_TEST
 from pkg_resources import get_distribution, DistributionNotFound
 import logging, coloredlogs
 
@@ -189,6 +190,10 @@ class App(Cmd):
             else:
                 self.config = Config(eb_config=self.eb_cfg)
 
+            # Determine the environment we are going to use in EB.
+            self.config.env = self.get_env()
+
+            # Initialize helper classes for registration & configuration.
             self.reg_svc = Registration(email=self.config.email, config=self.config,
                                         eb_config=self.eb_cfg, eb_settings=self.eb_settings)
 
@@ -937,6 +942,26 @@ class App(Cmd):
             print('')
         return 0
 
+    def get_env(self):
+        """
+        Determines which environment to use.
+        Priority from top to bottom:
+         - command line switch
+         - /etc/enigma/config.json
+         - eb-settings.json
+         - default: production
+        :return:
+        """
+        if self.args.env_dev:
+            return ENVIRONMENT_DEVELOPMENT
+        if self.args.env_test:
+            return ENVIRONMENT_TEST
+        if self.config is not None and self.config.env is not None:
+            return self.config.env
+        if self.eb_settings is not None and self.eb_settings.env is not None:
+            return self.eb_settings.env
+        return ENVIRONMENT_PRODUCTION
+
     def return_code(self, code=0, if_interactive_return_ok=False):
         self.last_result = code
         if if_interactive_return_ok:
@@ -1210,6 +1235,11 @@ class App(Cmd):
         parser.add_argument('--reg-token', dest='reg_token', default=None,
                             help='Optional user registration token')
 
+        parser.add_argument('--env-dev', dest='env_dev', action='store_const', const=True, default=None,
+                            help='Use the devel environment in the EnigmaBridge')
+        parser.add_argument('--env-test', dest='env_test', action='store_const', const=True, default=None,
+                            help='Use the test environment in the EnigmaBridge')
+
         parser.add_argument('--vpc', dest='is_vpc', default=None, type=int,
                             help='Sets whether the installation is in Virtual Private Cloud (VPC, public IP is not '
                                  'accessible from the outside - NAT/Firewall). 1 for VPC, 0 for public IP')
@@ -1236,6 +1266,10 @@ class App(Cmd):
 
         self.args = parser.parse_args(args=args_src[1:])
         self.noninteractive = self.args.noninteractive
+
+        if self.args.env_dev is not None and self.args.env_test is not None:
+            print(self.t.red('Error: env-dev and env-test are mutually exclusive'))
+            sys.exit(2)
 
         # Fixing cmd2 arg parsing, call cmdLoop
         sys.argv = [args_src[0]]

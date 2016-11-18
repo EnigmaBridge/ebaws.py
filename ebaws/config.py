@@ -174,6 +174,15 @@ class Config(object):
     def apikey(self, val):
         self.set_config('apikey', val)
 
+    # env
+    @property
+    def env(self):
+        return self.get_config('env')
+
+    @env.setter
+    def env(self, val):
+        self.set_config('env', val)
+
     # process endpoint
     @property
     def servers(self):
@@ -360,5 +369,14 @@ class EBSettings(object):
     @user_reg_type.setter
     def user_reg_type(self, val):
         self.set_config('user_reg_type', val)
+
+    # env
+    @property
+    def env(self):
+        return self.get_config('env')
+
+    @env.setter
+    def env(self, val):
+        self.set_config('env', val)
 
 

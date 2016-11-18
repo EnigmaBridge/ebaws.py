@@ -119,7 +119,6 @@ class Registration(object):
         self.config = config
         self.eb_settings = eb_settings
         self.user_reg_type = None
-        self.env = ENVIRONMENT_DEVELOPMENT
 
         self.key = None
         self.crt = None
@@ -237,7 +236,7 @@ class Registration(object):
             'type': self.user_reg_type
         }
 
-        get_auth_req = GetClientAuthRequest(client_data=client_data_req, env=self.env, config=self.eb_config)
+        get_auth_req = GetClientAuthRequest(client_data=client_data_req, env=self.config.env, config=self.eb_config)
         get_auth_resp = get_auth_req.call()
         if 'authentication' not in get_auth_resp:
             raise InvalidResponse('Authentication types not present in the response')
@@ -297,7 +296,7 @@ class Registration(object):
             'email': self.get_email()
         }
 
-        init_auth_req = InitClientAuthRequest(client_data=client_data_req, env=self.env, config=self.eb_config)
+        init_auth_req = InitClientAuthRequest(client_data=client_data_req, env=self.config.env, config=self.eb_config)
         init_auth_resp = init_auth_req.call()
         if 'clientid' not in init_auth_resp:
             raise InvalidResponse('Authentication initialization fails')
@@ -341,7 +340,7 @@ class Registration(object):
         if clid is not None and len(clid) > 0:
             client_data_reg['clientid'] = clid
 
-        regreq = RegistrationRequest(client_data=client_data_reg, env=self.env, config=self.eb_config)
+        regreq = RegistrationRequest(client_data=client_data_reg, env=self.config.env, config=self.eb_config)
         regresponse = regreq.call()
 
         if 'username' not in regresponse:
@@ -359,10 +358,11 @@ class Registration(object):
             "ipv6": "fe80::2e0:4cff:fe68:bcc2/64",
             "country": "gb",
             "network": "plusnet",
-            "location": [0.34,10]
+            "location": [0.34, 10]
         }
 
-        apireq = ApiKeyRequest(client_data=client_api_req, endpoint=endpoint, env=self.env, config=self.eb_config)
+        apireq = ApiKeyRequest(client_data=client_api_req, endpoint=endpoint,
+                               env=self.config.env, config=self.eb_config)
         apiresponse = apireq.call()
 
         if 'apikey' not in apiresponse:
@@ -389,10 +389,10 @@ class Registration(object):
             'certificate': self.get_cert_pem_json()
         }
 
-        req = EnrolDomainRequest(api_data=api_data_reg, env=self.env, config=self.eb_config)
+        req = EnrolDomainRequest(api_data=api_data_reg, env=self.config.env, config=self.eb_config)
         try:
             resp = req.call()
-        except Exception as e:
+        except Exception:
             print api_data_reg
             print req.response
             raise
@@ -445,14 +445,14 @@ class Registration(object):
             'apikey': self.config.apikey
         }
 
-        req = GetDomainChallengeRequest(api_data=api_data_req_body, env=self.env, config=self.eb_config)
+        req = GetDomainChallengeRequest(api_data=api_data_req_body, env=self.config.env, config=self.eb_config)
         resp = req.call()
 
         if 'authentication' not in resp:
             raise InvalidResponse('Authentication not present in the response')
 
         auth_type = resp['authentication']
-        if auth_type not in ['signature', 'challenge'] :
+        if auth_type not in ['signature', 'challenge']:
             raise InvalidResponse('Unsupported authentication type ' + auth_type)
 
         # Step 2 - claim the domain
@@ -479,12 +479,12 @@ class Registration(object):
             },
         }
 
-        req_upd = UpdateDomainRequest(api_data=api_data_req, env=self.env, config=self.eb_config)
+        req_upd = UpdateDomainRequest(api_data=api_data_req, env=self.config.env, config=self.eb_config)
         req_upd.aux_data = signature_aux
 
         try:
             resp_update = req_upd.call()
-        except Exception as e:
+        except Exception:
             if self.debug:
                 print api_data_req_body
                 print signature_aux
@@ -500,6 +500,7 @@ class Registration(object):
         """
         Generates DNS data for LetsEncrypt DNS TXT domain validation
         for the given list of (domain, TXT) record pair list.
+        :rtype : object
         :param domain_token_list:
         :return:
         """
