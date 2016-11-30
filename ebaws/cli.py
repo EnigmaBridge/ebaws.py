@@ -349,7 +349,7 @@ class App(Cmd):
             print('\nPKI installed successfully.')
 
             # Generate new keys
-            print('\nGoing to generate EnigmaBridge keys in the crypto token:')
+            print('\nEnigma Bridge service will generate keys for your crypto token:')
             ret, out, err = self.ejbca.pkcs11_generate_default_key_set(softhsm=self.soft_config)
             key_gen_cmds = [
                     self.ejbca.pkcs11_get_generate_key_cmd(softhsm=self.soft_config,
@@ -937,7 +937,7 @@ class App(Cmd):
                   % int(math.ceil(total_mem/1024/1024)))
 
             print('New swap file will be installed in /var')
-            print('It will take approximately 2 minutes...')
+            print('It will take approximately 2 minutes')
             code, swap_name, swap_size = syscfg.create_swap()
             if code == 0:
                 print('\nNew swap file was created %s %d MB and activated'

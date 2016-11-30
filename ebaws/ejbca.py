@@ -774,7 +774,7 @@ class Ejbca(object):
 
         # Restart jboss - to make sure it is running
         if self.print_output:
-            print "\n - Restarting application server, please wait..."
+            print "\n - Restarting application server, please wait"
         jboss_works = self.jboss_restart()
         if not jboss_works:
             print "\n Application server (JBoss) could not be restarted. Please, resolve the problem and start again"
@@ -787,7 +787,7 @@ class Ejbca(object):
 
         # Restart jboss - so we can delete database after removal
         if self.print_output:
-            print "\n - Restarting application server, please wait..."
+            print "\n - Restarting application server, please wait"
         jboss_works = self.jboss_restart()
         if not jboss_works:
             print "\n Application server could not be restarted. Please, resolve the problem and start again"
