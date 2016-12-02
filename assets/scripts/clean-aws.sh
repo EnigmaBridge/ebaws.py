@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 
-# Do not forget to undeploy existing EJBCA installation.
+# Undeploy current EJBCA version from the JBoss
+ebaws --non-interactive --yes --force undeploy_ejbca
+
+# Stop the JBoss server
 /etc/init.d/jboss-eap-6.4.0 stop
+
+# And disable the JBoss after the start
+chkconfig jboss-eap-6.4.0 off
 
 # ec2-user
 /bin/rm /home/ec2-user/.jboss-cli-history
