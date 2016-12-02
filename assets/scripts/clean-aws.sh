@@ -28,6 +28,7 @@ echo -n '' > /root/.bash_history
 find /root/.*history /home/*/.*history -exec rm -f {} \;
 /bin/rm -rf /root/.config/*
 /bin/rm -rf /root/.config/*
+/bin/rm -rf /root/.mc
 /bin/rm -rf /root/.cache/pip
 
 # Logs
