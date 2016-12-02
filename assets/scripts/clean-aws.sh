@@ -92,6 +92,7 @@ find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'install_0*.properties' -exec shr
 /bin/rm -rf /root/ejbcadb.old
 /bin/rm /opt/jboss-eap-6.4.0/ejbcadb*
 /bin/rm /opt/jboss-eap-6.4.0/standalone/configuration/keystore/*
+/bin/rm /opt/jboss-eap-6.4.0/standalone/deployments/ejbca*
 /bin/rm /tmp/jboss-cli.log
 /bin/rm /tmp/jboss-cli_*.log
 /bin/rm /tmp/ant-*.log
@@ -108,6 +109,7 @@ find /opt/ejbca_ce_6_3_1_1/conf/ -type f -name 'install_0*.properties' -exec shr
 find /opt/jboss-eap-6.4.0/standalone/log/ -type f -exec shred -u {} \;
 find /opt/jboss-eap-6.4.0/standalone/configuration/standalone_xml_history/ -type f -exec shred -u {} \;
 /bin/rm -rf /opt/jboss-eap-6.4.0/standalone/configuration/standalone_xml_history/*
+/bin/rm -rf /opt/jboss-eap-6.4.0/standalone/tmp/work/jboss.web/default-host/*
 
 #
 # Identity
