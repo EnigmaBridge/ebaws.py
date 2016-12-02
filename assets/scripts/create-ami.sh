@@ -34,20 +34,24 @@
 #
 
 #
-# Export data
+# Export data - from your configuration file.
 #
 export AWS_ACC=112233445566
 export AWS_ACCESS_KEY_ID=your_access_key_id
 export AWS_SECRET_ACCESS_KEY=your_secret_access_key
+
+# Export the rest - copy paste
 export AMI_REGION=eu-west-1
 export INSTANCE_ID=`ec2-metadata -i | cut -d ' ' -f 2`
 export AMI_ID=`ec2-metadata -a | cut -d ' ' -f 2`
 
 # 4. create image (as root)
-#   Creates disk image of the instance the command is started on (instance you want to create AMI from)
+#   Creates disk image of the instance the following command is started on (instance you want to create AMI from).
 #   Image requires quite a lot of free space.
-#   Size 8192 MB corresponds to the size of a new created volume with 8GiB
+#   Size 8192 MB corresponds to the size of a newly created AWS volume with 8GiB.
 #   We have to use --no-filter because ec2-bundle-vol would exclude all pem files - we cannot do that (CA roots)
+#   The real file size occupied on the disk is less than total size (sum of all file sizes). Thus it fits on
+#   the same drive.
 #
 ec2-bundle-vol -k /tmp/cert/private-key.pem -c /tmp/cert/certificate.pem -u $AWS_ACC -r x86_64 \
   -e /tmp/cert,/mnt/build,/var/swap.1 \
@@ -116,30 +120,46 @@ VOLRES=`aws ec2 create-volume --size 8 --region $AMI_REGION --availability-zone 
 echo $VOLRES
 
 # The command will produce a row like: "VolumeId": "vol-38fcf689", export the value to the env var.
-#export VOLUME_ID=vol-xx1122
 export VOLUME_ID=`echo $VOLRES | python -c "import sys, json; print json.load(sys.stdin)['VolumeId']"`
+echo $VOLUME_ID
 
 # Attach the volume to the AMI
 aws ec2 attach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --device /dev/sdb --region $AMI_REGION
 
 # DD-bundle to the new volume
 #   We can skip ec2-download-bundle, ec2-unbundle as we have the unbundled image ready
-#   If desired, use kill -USR1 DDPID to monitor DDs progress
+#   If desired, use kill -SIGUSR1 DDPID to monitor DDs progress
 sudo dd if=/mnt/build/image of=/dev/sdb bs=1M
 
 # Remove unwanted fstab entries (e.g., file swaps)
 # Remove SSH keys
 sudo partprobe /dev/sdb
 lsblk
+sleep 2
 sudo mkdir -p /mnt/ebs
 sudo mount /dev/sdb1 /mnt/ebs
 
 # Remove file swap entry if you have it
 sudo vim /mnt/ebs/etc/fstab
 
+# chroot to the image FS, delete all unnecessary data.
 chroot /mnt/ebs/
-# run clean script, CTRL+D
 
+# .. run clean script, CTRL+D
+# ..
+# then additional cleaning
+shred -u /etc/ssh/*_key /etc/ssh/*_key.pub
+find /etc/ssh/ -name '*key*' -exec shred -u -z {} \;
+find /root/.*history /mnt/ebs/home/*/.*history -exec shred -u -z {} \;
+find / -name "authorized_keys" -exec shred -u -z {} \;
+updatedb
+shred -u ~/.*history
+history -c
+
+# Exit chroot: CTRL+D -
+# ..
+
+# then the final key cleanup:
 sudo find /mnt/ebs/etc/ssh/ -name '*key*' -exec shred -u -z {} \;
 sudo find /mnt/ebs/root/.*history /mnt/ebs/home/*/.*history -exec shred -u -z {} \;
 sudo find /mnt/ebs -name "authorized_keys" -exec shred -u -z {} \;
@@ -157,8 +177,8 @@ SNAPRES=`aws ec2 create-snapshot --region $AMI_REGION --description "EnigmaBridg
 echo $SNAPRES
 
 # The command will produce a row like: "SnapshotId": "snap-ef019d24", export the value to the env var.
-#export SNAPSHOT_ID=snap-xx112233
 export SNAPSHOT_ID=`echo $SNAPRES | python -c "import sys, json; print json.load(sys.stdin)['SnapshotId']"`
+echo $SNAPSHOT_ID
 
 # Verify snapshot - wait until the progress is 100%
 aws ec2 describe-snapshots --region $AMI_REGION --snapshot-id $SNAPSHOT_ID
