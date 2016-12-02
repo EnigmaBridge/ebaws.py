@@ -184,13 +184,14 @@ echo $SNAPSHOT_ID
 aws ec2 describe-snapshots --region $AMI_REGION --snapshot-id $SNAPSHOT_ID
 
 # Get Current AMI data - architecture, kernel id (if applicable), ramdisk id (if applicable)
+# [OPTIONAL]
 aws ec2 describe-images --region $AMI_REGION --image-id $AMI_ID --output text
 
 # Create new AMI
 # vx for store, vxS for public sharing
-aws ec2 register-image --region $AMI_REGION --name 'EnigmaBridge-EJBCA-v4' \
+aws ec2 register-image --region $AMI_REGION --name 'EnigmaBridge-EJBCA-v3S' \
   --block-device-mappings DeviceName=/dev/xvda,Ebs={SnapshotId=${SNAPSHOT_ID}} \
-  --description 'EnigmaBridge integrated EJBCA AMI version 4' \
+  --description 'EnigmaBridge integrated EJBCA AMI version 3S' \
   --virtualization-type hvm --architecture x86_64 \
   --root-device-name /dev/xvda
 
