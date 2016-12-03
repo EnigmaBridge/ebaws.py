@@ -315,7 +315,8 @@ class App(Cmd):
 
             # SoftHSMv1 reconfigure
             soft_config_backup_location = self.soft_config.backup_current_config_file()
-            print('SoftHSMv1 configuration has been backed up to: %s' % soft_config_backup_location)
+            if soft_config_backup_location is not None:
+                print('SoftHSMv1 configuration has been backed up to: %s' % soft_config_backup_location)
 
             self.soft_config.configure(new_config)
             soft_config_file = self.soft_config.write_config()
