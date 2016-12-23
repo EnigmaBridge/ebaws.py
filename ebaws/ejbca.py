@@ -60,7 +60,7 @@ class Ejbca(object):
     }
 
     WEB_PROPERTIES = {
-        'cryptotoken.p11.lib.255.name': 'SoftHSMv1',
+        'cryptotoken.p11.lib.255.name': 'EnigmaBridge',
         'cryptotoken.p11.lib.255.file': '/usr/lib64/softhsm/libsofthsm.so',
 
         'httpsserver.hostname': 'localhost',

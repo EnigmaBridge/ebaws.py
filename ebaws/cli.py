@@ -316,20 +316,20 @@ class App(Cmd):
             # SoftHSMv1 reconfigure
             soft_config_backup_location = self.soft_config.backup_current_config_file()
             if soft_config_backup_location is not None:
-                print('SoftHSMv1 configuration has been backed up to: %s' % soft_config_backup_location)
+                print('EnigmaBridge PKCS#11 token configuration has been backed up to: %s' % soft_config_backup_location)
 
             self.soft_config.configure(new_config)
             soft_config_file = self.soft_config.write_config()
 
-            print('New SoftHSMv1 configuration has been written to: %s\n' % soft_config_file)
+            print('New EnigmaBridge PKCS#11 token configuration has been written to: %s\n' % soft_config_file)
 
             # Init the token
             backup_dir = self.soft_config.backup_previous_token_dir()
             if backup_dir is not None:
-                print('SoftHSMv1 previous token database moved to: %s' % backup_dir)
+                print('EnigmaBridge PKCS#11 previous token database moved to: %s' % backup_dir)
 
             out, err = self.soft_config.init_token(user=self.ejbca.JBOSS_USER)
-            print('SoftHSMv1 initialization: %s' % out)
+            print('EnigmaBridge PKCS#11 token initialization: %s' % out)
 
             # EJBCA configuration
             print('Going to install PKI system')
@@ -384,7 +384,7 @@ class App(Cmd):
             if ret != 0:
                 print('\nError in adding EnigmaBridge token to the PKI instance')
                 print('You can add it manually in the PKI (EJBCA) admin page later')
-                print('Pin for the SoftHSMv1 (EnigmaBridge) token is 0000')
+                print('Pin for the EnigmaBridge token is 0000')
             else:
                 print('\nEnigmaBridgeToken added to the PKI instance')
 
