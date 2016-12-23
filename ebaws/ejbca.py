@@ -2,6 +2,7 @@ import os
 import util
 from sarge import run, Capture, Feeder
 from ebclient.eb_utils import EBUtils
+from softhsm import SoftHsmV1Config
 from datetime import datetime
 import time
 import sys
@@ -61,7 +62,7 @@ class Ejbca(object):
 
     WEB_PROPERTIES = {
         'cryptotoken.p11.lib.255.name': 'EnigmaBridge',
-        'cryptotoken.p11.lib.255.file': '/usr/lib64/softhsm/libsofthsm.so',
+        'cryptotoken.p11.lib.255.file': SoftHsmV1Config.SOFTHSM_SO_PATH,
 
         'httpsserver.hostname': 'localhost',
         'httpsserver.dn': 'CN=localhost,O=Enigma Bridge Ltd,C=GB',
@@ -509,7 +510,7 @@ class Ejbca(object):
         :param slot_id:
         :return:
         """
-        so_path = softhsm.get_so_path() if softhsm is not None else '/usr/lib64/softhsm/libsofthsm.so'
+        so_path = softhsm.get_so_path() if softhsm is not None else SoftHsmV1Config.SOFTHSM_SO_PATH
         cmd = 'cryptotoken create ' \
               '--token "%s" ' \
               '--pin 0000 ' \
@@ -558,11 +559,11 @@ class Ejbca(object):
             feeder.feed('\n')
 
     def pkcs11_get_generate_key_cmd(self, softhsm=None, bit_size=2048, alias=None, slot_id=0):
-        so_path = softhsm.get_so_path() if softhsm is not None else '/usr/lib64/softhsm/libsofthsm.so'
+        so_path = softhsm.get_so_path() if softhsm is not None else SoftHsmV1Config.SOFTHSM_SO_PATH
         return 'generate %s %s %s %s' % (so_path, bit_size, alias, slot_id)
 
     def pkcs11_get_test_key_cmd(self, softhsm=None, slot_id=0):
-        so_path = softhsm.get_so_path() if softhsm is not None else '/usr/lib64/softhsm/libsofthsm.so'
+        so_path = softhsm.get_so_path() if softhsm is not None else SoftHsmV1Config.SOFTHSM_SO_PATH
         return 'test %s %s' % (so_path, slot_id)
 
     def pkcs11_generate_key(self, softhsm=None, bit_size=2048, alias=None, slot_id=0, retry_attempts=3):
